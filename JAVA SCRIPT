@@ -1,0 +1,123 @@
+// ================================================================
+// BAGIAN YANG DIUBAH - TITIK LINTASAN SANGAT JARANG (30 TITIK)
+// ================================================================
+
+// ============================================================
+// 1. VARIABEL GLOBAL (TAMBAHKAN INI)
+// ============================================================
+let frameCounter = 0; // Untuk menghitung frame
+
+// ============================================================
+// 2. FUNGSI updateFisika() - YANG DIUBAH
+// ============================================================
+function updateFisika() {
+    if (!running) return;
+
+    // ============================================================
+    // TITIK HANYA SETIAP 20 FRAME - MAKSIMAL 30 TITIK
+    // ============================================================
+    frameCounter++;
+    if (frameCounter % 20 === 0) {  // Hanya setiap 20 frame
+        trail.push({ x, y, vx, vy, waktu });
+        if (trail.length > 30) trail.shift(); // Maksimal 30 titik
+    }
+
+    // Fisika gerak parabola
+    vy += g * dt;
+    x += vx * dt;
+    y += vy * dt;
+    waktu += dt;
+
+    // Update jarak & tinggi maks
+    if (x - posisiAwalX > jarakTempuh) jarakTempuh = x - posisiAwalX;
+    if ((GROUND_Y - y) > tinggiMaks) tinggiMaks = GROUND_Y - y;
+
+    // ============================================================
+    // TUMBUKAN TANAH - LANGSUNG BERHENTI (TIDAK MANTUL)
+    // ============================================================
+    if (y >= GROUND_Y) {
+        y = GROUND_Y;
+        vx = 0;
+        vy = 0;
+        running = false;
+
+        // Simpan titik terakhir
+        trail.push({ x, y, vx, vy, waktu });
+        if (trail.length > 30) trail.shift();
+
+        mulaiBtn.disabled = false;
+        mulaiBtn.textContent = '🚀 LUNCURKAN LAGI';
+        statusText.textContent = 'SELESAI 🎯';
+        statusText.className = 'status-selesai';
+        infoJarak.textContent = Math.round(jarakTempuh);
+        infoTinggi.textContent = Math.round(tinggiMaks);
+    }
+
+    // Batas kanvas
+    if (x > W - 30) { x = W - 30; vx = 0; vy = 0; running = false; }
+    if (x < 30) { x = 30; vx = 0; vy = 0; running = false; }
+    if (running && y < 30) { y = 30; vy = -vy * 0.1; }
+
+    if (running && Math.abs(vx) < 0.01 && Math.abs(vy) < 0.01 && y >= GROUND_Y - 1) {
+        running = false;
+        trail.push({ x, y, vx, vy, waktu });
+        if (trail.length > 30) trail.shift();
+        mulaiBtn.disabled = false;
+        mulaiBtn.textContent = '🚀 LUNCURKAN LAGI';
+        statusText.textContent = 'SELESAI 🎯';
+        statusText.className = 'status-selesai';
+        infoJarak.textContent = Math.round(jarakTempuh);
+        infoTinggi.textContent = Math.round(tinggiMaks);
+    }
+
+    updateDataPanel();
+}
+
+// ============================================================
+// 3. FUNGSI draw() - BAGIAN TRAIL YANG DIUBAH
+// ============================================================
+// Cari bagian ini di dalam fungsi draw() dan ganti dengan yang di bawah:
+
+// ============================================================
+// TRAIL - HANYA 30 TITIK DENGAN NOMOR URUT
+// ============================================================
+if (trail.length > 0) {
+    // Gambar garis penghubung antar titik
+    if (trail.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(trail[0].x, trail[0].y);
+        for (let i = 1; i < trail.length; i++) {
+            ctx.lineTo(trail[i].x, trail[i].y);
+        }
+        ctx.strokeStyle = 'rgba(255, 220, 100, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // Gambar titik-titik dengan nomor urut
+    for (let i = 0; i < trail.length; i++) {
+        const p = trail[i];
+        const alpha = (i + 1) / trail.length;
+        const radius = 6 + alpha * 4;
+
+        // Lingkaran titik
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 200, 80, ${0.5 + alpha * 0.4})`;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 200, 80, 0.8)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Nomor urut titik
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(i + 1, p.x, p.y - 16);
+        ctx.textBaseline = 'alphabetic';
+        ctx.textAlign = 'left';
+    }
+}
