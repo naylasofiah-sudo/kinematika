@@ -386,48 +386,56 @@ prediksiBaruBtn.addEventListener('click', function() {
         updateDataPanel();
     }
 
-    // --- PREDIKSI (PINTAR) ---
-    function setupPrediksi() {
-        const idx = Math.floor(Math.random() * PERTANYAAN.length);
-        pertanyaanAktif = PERTANYAAN[idx];
-        pertanyaanEl.textContent = pertanyaanAktif.q;
-        
-        const tombolJawaban = document.querySelectorAll('#jawabanPrediksi button');
-        tombolJawaban.forEach(b => {
-            b.style.background = 'white';
-            b.style.color = '#2a5298';
-            b.disabled = false;
-        });
-        
-        hasilPrediksi.style.display = 'none';
-        prediksiSelesai = false;
-    }
+   // --- PREDIKSI (PINTAR) ---
+function setupPrediksi() {
+    const idx = Math.floor(Math.random() * PERTANYAAN.length);
+    pertanyaanAktif = PERTANYAAN[idx];
+    pertanyaanEl.textContent = pertanyaanAktif.q;
+    
+    const tombolJawaban = document.querySelectorAll('#jawabanPrediksi button');
+    tombolJawaban.forEach(b => {
+        b.style.background = 'white';
+        b.style.color = '#2a5298';
+        b.disabled = false;
+    });
+    
+    hasilPrediksi.style.display = 'none';
+    prediksiSelesai = false;
+}
 
-    function tampilkanHasilPrediksi() {
-        if (prediksiSelesai || !pertanyaanAktif) return;
-        prediksiSelesai = true;
-        
-        const jawabanDipilih = document.querySelector('#jawabanPrediksi button[style*="background"]');
-        if (!jawabanDipilih) {
-            hasilPrediksi.style.display = 'block';
-            hasilPrediksi.className = 'hasil-prediksi';
-            hasilPrediksi.innerHTML = '⚠️ Silakan pilih prediksi Anda terlebih dahulu!';
-            return;
-        }
-        
-        const jawabanUser = jawabanDipilih.dataset.jawaban;
-        const jawabanBenar = pertanyaanAktif.jawaban;
-        const benar = (jawabanUser === jawabanBenar);
-        
+// ============================================================
+// INI VERSI BARU YANG PAKAI background: rgb(42, 82, 152)
+// ============================================================
+function tampilkanHasilPrediksi() {
+    // Cek apakah sudah selesai atau tidak ada pertanyaan aktif
+    if (prediksiSelesai || !pertanyaanAktif) return;
+    
+    // Cari tombol yang dipilih (background biru)
+    const tombolDipilih = document.querySelector('#jawabanPrediksi button[style*="background: rgb(42, 82, 152)"]');
+    
+    if (!tombolDipilih) {
         hasilPrediksi.style.display = 'block';
-        hasilPrediksi.className = 'hasil-prediksi ' + (benar ? 'benar' : 'salah');
-        
-        if (benar) {
-            hasilPrediksi.innerHTML = `✅ <strong>Benar!</strong> ${pertanyaanAktif.penjelasan_benar}`;
-        } else {
-            hasilPrediksi.innerHTML = `❌ <strong>Kurang tepat.</strong> ${pertanyaanAktif.penjelasan_salah}`;
-        }
+        hasilPrediksi.className = 'hasil-prediksi';
+        hasilPrediksi.innerHTML = '⚠️ Silakan pilih prediksi Anda terlebih dahulu!';
+        return;
     }
+    
+    const jawabanUser = tombolDipilih.dataset.jawaban;
+    const jawabanBenar = pertanyaanAktif.jawaban;
+    const benar = (jawabanUser === jawabanBenar);
+    
+    // Tampilkan hasil
+    hasilPrediksi.style.display = 'block';
+    hasilPrediksi.className = 'hasil-prediksi ' + (benar ? 'benar' : 'salah');
+    
+    if (benar) {
+        hasilPrediksi.innerHTML = `✅ <strong>Benar!</strong> ${pertanyaanAktif.penjelasan_benar}`;
+    } else {
+        hasilPrediksi.innerHTML = `❌ <strong>Kurang tepat.</strong> ${pertanyaanAktif.penjelasan_salah}`;
+    }
+    
+    prediksiSelesai = true;
+}
 
     // --- GAMBAR MERIAM ---
     function drawMeriam(angle) {
