@@ -1,926 +1,693 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulasi Meriam - Kinematika Partikel</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #0f0c29;
-            min-height: 100vh;
-            padding: 20px;
+// ================================================================
+// SIMULASI MERIAM - KINEMATIKA PARTIKEL
+// VERSI FINAL - SEMUA FITUR BERES (PREDIKSI PINTAR + ANTI LAG)
+// ================================================================
+
+(function() {
+    "use strict";
+
+    // --- ELEMEN ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    const tooltipInfo = document.getElementById('tooltipInfo');
+    const tooltipJudul = document.getElementById('tooltipJudul');
+    const tooltipData = document.getElementById('tooltipData');
+
+    // --- KONTROL ---
+    const kecepatanAwalSlider = document.getElementById('kecepatanAwal');
+    const nilaiKecepatan = document.getElementById('nilaiKecepatan');
+    const sudutSlider = document.getElementById('sudut');
+    const nilaiSudut = document.getElementById('nilaiSudut');
+    const gravitasiSlider = document.getElementById('gravitasi');
+    const nilaiGravitasi = document.getElementById('nilaiGravitasi');
+    const mulaiBtn = document.getElementById('mulaiBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // --- INFO ---
+    const statusText = document.getElementById('statusText');
+    const infoSudut = document.getElementById('infoSudut');
+    const infoJarak = document.getElementById('infoJarak');
+    const infoTinggi = document.getElementById('infoTinggi');
+    const infoWaktuTempuh = document.getElementById('infoWaktuTempuh');
+    const dataWaktu = document.getElementById('dataWaktu');
+    const dataVx = document.getElementById('dataVx');
+    const dataVy = document.getElementById('dataVy');
+    const dataSpeed = document.getElementById('dataSpeed');
+    const dataPos = document.getElementById('dataPos');
+
+    // --- PREDIKSI ---
+    const pertanyaanEl = document.getElementById('pertanyaanPrediksi');
+    const jawabanPrediksi = document.getElementById('jawabanPrediksi');
+    const hasilPrediksi = document.getElementById('hasilPrediksi');
+    const prediksiBaruBtn = document.getElementById('prediksiBaruBtn');
+
+    // --- KONSTANTA ---
+    const GROUND_Y = 650;
+    const START_X = 200;
+    const START_Y = GROUND_Y;
+    const MERIAM_X = 160;
+    const MERIAM_Y = GROUND_Y - 10;
+    const LARAS_PANJANG = 70;
+    const MAX_TRAIL = 120;
+
+    // --- VARIABEL ---
+    let v0 = 14, sudut = 45, g = 0.25, dt = 1;
+    let x = START_X, y = START_Y, vx = 0, vy = 0, waktu = 0;
+    let trail = [];
+    let running = false, paused = false;
+    let animId = null;
+    let jarakTempuh = 0, tinggiMaks = 0, waktuTempuh = 0;
+    let posisiAwalX = START_X;
+    let titikList = [];
+    let prediksiSelesai = false;
+    let pertanyaanAktif = null;
+
+    // --- PERTANYAAN PREDIKSI (LENGKAP) ---
+    const PERTANYAAN = [
+        {
+            q: 'Jika sudut meriam dinaikkan dari 30° menjadi 45° (dengan v₀ tetap), bagaimana jarak horizontalnya?',
+            jawaban: 'bertambah',
+            penjelasan_benar: 'Sudut yang lebih besar (hingga 45°) menghasilkan jarak yang lebih jauh.',
+            penjelasan_salah: 'Coba ingat: sudut yang lebih besar (hingga 45°) menghasilkan jarak yang lebih jauh.'
+        },
+        {
+            q: 'Jika sudut meriam dinaikkan dari 45° menjadi 60° (dengan v₀ tetap), bagaimana jarak horizontalnya?',
+            jawaban: 'berkurang',
+            penjelasan_benar: 'Sudut di atas 45° justru mengurangi jarak horizontal.',
+            penjelasan_salah: 'Coba ingat: sudut di atas 45° justru mengurangi jarak horizontal.'
+        },
+        {
+            q: 'Jika kecepatan awal diperbesar (dengan sudut tetap), bagaimana tinggi maksimumnya?',
+            jawaban: 'bertambah',
+            penjelasan_benar: 'Kecepatan awal yang lebih besar menghasilkan tinggi maksimum yang lebih tinggi.',
+            penjelasan_salah: 'Coba ingat: kecepatan awal berbanding lurus dengan tinggi maksimum.'
+        },
+        {
+            q: 'Jika gravitasi diperbesar (dengan v₀ dan sudut tetap), bagaimana jarak horizontalnya?',
+            jawaban: 'berkurang',
+            penjelasan_benar: 'Gravitasi yang lebih besar membuat benda lebih cepat jatuh, sehingga jarak horizontal berkurang.',
+            penjelasan_salah: 'Coba ingat: gravitasi yang lebih besar membuat benda lebih cepat jatuh, jarak horizontal berkurang.'
+        },
+        {
+            q: 'Jika kecepatan awal diperbesar (dengan sudut tetap), bagaimana jarak horizontalnya?',
+            jawaban: 'bertambah',
+            penjelasan_benar: 'Kecepatan awal yang lebih besar menghasilkan jarak horizontal yang lebih jauh.',
+            penjelasan_salah: 'Coba ingat: kecepatan awal berbanding lurus dengan jarak horizontal.'
         }
-        .container {
-            background: rgba(255,255,255,0.95);
-            border-radius: 20px;
-            padding: 25px;
-            max-width: 1700px;
-            width: 100%;
-            margin: 0 auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-        }
-        h1 { text-align: center; color: #1a1a2e; font-size: 30px; }
-        .subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 15px; }
+    ];
 
-        .main-layout { display: flex; gap: 20px; flex-wrap: wrap; }
-        .left-col { flex: 2; min-width: 600px; }
-        .right-col { flex: 1; min-width: 300px; max-width: 450px; }
+    // --- KONVERSI ---
+    function derajatKeRadian(deg) { return deg * Math.PI / 180; }
 
-        .controls { display: flex; flex-wrap: wrap; gap: 10px; background: #f0f2f5; padding: 15px 20px; border-radius: 12px; margin-bottom: 15px; }
-        .control-group { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 150px; }
-        .control-group label { font-weight: 600; font-size: 13px; min-width: 60px; }
-        .control-group input[type="range"] { flex: 1; accent-color: #e65100; height: 5px; }
-        .control-group span { min-width: 40px; font-weight: 700; color: #e65100; font-size: 14px; }
+    // --- UPDATE DATA ---
+    function updateDataPanel() {
+        const kecepatanTotal = Math.sqrt(vx * vx + vy * vy);
+        dataWaktu.textContent = waktu.toFixed(2);
+        dataVx.textContent = vx.toFixed(2);
+        dataVy.textContent = vy.toFixed(2);
+        dataSpeed.textContent = kecepatanTotal.toFixed(2);
+        dataPos.textContent = `(${Math.round(x)}, ${Math.round(GROUND_Y - y)})`;
+    }
 
-        .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
-        .btn { padding: 10px 25px; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; }
-        .btn-primary { background: linear-gradient(135deg, #e65100, #bf360c); color: white; }
-        .btn-primary:hover { transform: scale(1.03); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-secondary { background: #37474f; color: white; }
-        .btn-secondary:hover { transform: scale(1.03); }
-        .btn-warning { background: #f57c00; color: white; }
-        .btn-warning:hover { transform: scale(1.03); }
-        .btn-warning:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        .canvas-wrapper { background: #1a1a2e; border-radius: 12px; overflow: hidden; border: 3px solid #4a4a8a; position: relative; }
-        canvas { display: block; width: 100%; height: auto; background: #1a1a2e; cursor: pointer; }
-
-        #tooltipInfo {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.92);
-            color: white;
-            padding: 10px;
-            border-radius: 8px;
-            pointer-events: auto;
-            display: none;
-            font-family: monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.2);
-            z-index: 100;
-            max-width: 230px;
-            transform: translate(-50%, -110%);
-        }
-        #tooltipInfo .judul { color: #FFD740; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 3px; }
-        #tooltipInfo .close-btn {
-            position: absolute;
-            top: 5px; right: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #aaa;
-        }
-        #tooltipInfo .close-btn:hover { color: white; }
-
-        .panel-box { background: #f8f9fa; border-radius: 12px; padding: 16px; margin-bottom: 12px; border-left: 4px solid #2a5298; }
-        .panel-box h3 { font-size: 15px; color: #1a1a2e; margin-bottom: 8px; }
-        .panel-box p, .panel-box li { font-size: 13px; color: #333; line-height: 1.6; }
-        .panel-box .rumus { background: #1a1a2e; color: #ffd740; padding: 10px 14px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px; margin: 6px 0; }
-        .panel-box .catatan { background: #fff3e0; padding: 8px 12px; border-radius: 6px; font-size: 12px; color: #e65100; border-left: 3px solid #e65100; }
-
-        .prediksi-box { background: #e8f0fe; border-radius: 12px; padding: 16px; border: 2px dashed #2a5298; }
-        .prediksi-box h3 { font-size: 15px; color: #1a1a2e; }
-        .prediksi-box .pertanyaan { font-weight: 600; color: #2a5298; margin: 6px 0; font-size: 14px; }
-        .prediksi-box .jawaban-prediksi { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
-        .prediksi-box .jawaban-prediksi button { padding: 6px 16px; border: 2px solid #2a5298; border-radius: 20px; background: white; cursor: pointer; font-weight: 600; transition: all 0.3s ease; }
-        .prediksi-box .jawaban-prediksi button:hover { background: #2a5298; color: white; }
-        .prediksi-box .jawaban-prediksi button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .prediksi-box .hasil-prediksi { font-size: 13px; color: #333; margin-top: 6px; padding: 8px; border-radius: 6px; background: white; }
-        .prediksi-box .hasil-prediksi.benar { border-left: 4px solid #2e7d32; }
-        .prediksi-box .hasil-prediksi.salah { border-left: 4px solid #c62828; }
-
-        .data-panel { display: flex; flex-wrap: wrap; gap: 8px 20px; background: #263238; padding: 12px 16px; border-radius: 10px; margin-top: 10px; border: 1px solid #4a4a8a; }
-        .data-item { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #e0e0e0; font-family: 'Courier New', monospace; }
-        .data-item .label { font-weight: 600; color: #90a4ae; }
-        .data-item .value { font-weight: 700; padding: 0 8px; background: rgba(255,255,255,0.08); border-radius: 4px; }
-        .data-item .value.vx { color: #4fc3f7; }
-        .data-item .value.vy { color: #ffb74d; }
-        .data-item .value.speed { color: #81c784; }
-        .data-item .value.time { color: #ce93d8; }
-        .data-item .value.posisi { color: #ffffff; }
-
-        .status-siap { color: #2e7d32; font-weight: 700; }
-        .status-terbang { color: #e65100; font-weight: 700; }
-        .status-selesai { color: #c62828; font-weight: 700; }
-        .status-pause { color: #f57c00; font-weight: 700; }
-
-        .info-panel { display: flex; flex-wrap: wrap; gap: 10px 25px; background: #f0f2f5; padding: 10px 16px; border-radius: 10px; margin-top: 10px; }
-        .info-item { font-size: 13px; }
-        .info-item .label { font-weight: 600; }
-
-        @media (max-width: 1000px) {
-            .left-col { min-width: unset; flex: 100%; }
-            .right-col { max-width: unset; flex: 100%; }
-        }
-        @media (max-width: 600px) {
-            .container { padding: 12px; }
-            .controls { flex-direction: column; }
-            .control-group { min-width: unset; }
-            .action-buttons { justify-content: center; }
-            .btn { padding: 8px 16px; font-size: 13px; }
-            .data-panel { flex-direction: column; align-items: center; }
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h1>🎯 SIMULASI MERIAM - KINEMATIKA PARTIKEL</h1>
-    <p class="subtitle">Klik titik-titik pada lintasan untuk menganalisis data secara detail!</p>
-
-    <div class="main-layout">
-        <div class="left-col">
-            <div class="controls">
-                <div class="control-group">
-                    <label>v₀ (m/s):</label>
-                    <input type="range" id="kecepatanAwal" min="2" max="30" step="0.5" value="14">
-                    <span id="nilaiKecepatan">14</span>
-                </div>
-                <div class="control-group">
-                    <label>Sudut (°):</label>
-                    <input type="range" id="sudut" min="5" max="85" step="1" value="45">
-                    <span id="nilaiSudut">45</span>
-                </div>
-                <div class="control-group">
-                    <label>Gravitasi (g):</label>
-                    <input type="range" id="gravitasi" min="0.05" max="2.0" step="0.05" value="0.25">
-                    <span id="nilaiGravitasi">0.25</span>
-                </div>
-            </div>
-
-            <div class="action-buttons">
-                <button id="mulaiBtn" class="btn btn-primary">🚀 LUNCURKAN</button>
-                <button id="pauseBtn" class="btn btn-warning" disabled>⏸️ Pause</button>
-                <button id="resetBtn" class="btn btn-secondary">🔄 Reset</button>
-            </div>
-
-            <div class="canvas-wrapper" id="canvasWrapper">
-                <canvas id="simCanvas" width="1600" height="750"></canvas>
-                <div id="tooltipInfo">
-                    <span class="close-btn" onclick="this.parentElement.style.display='none'">✖</span>
-                    <div class="judul" id="tooltipJudul">Titik</div>
-                    <div id="tooltipData"></div>
-                </div>
-            </div>
-
-            <div class="data-panel">
-                <div class="data-item"><span class="label">⏱️ Waktu:</span> <span class="value time" id="dataWaktu">0.00</span> s</div>
-                <div class="data-item"><span class="label">🔵 Vx:</span> <span class="value vx" id="dataVx">0.00</span> m/s</div>
-                <div class="data-item"><span class="label">🟠 Vy:</span> <span class="value vy" id="dataVy">0.00</span> m/s</div>
-                <div class="data-item"><span class="label">📈 |v|:</span> <span class="value speed" id="dataSpeed">0.00</span> m/s</div>
-                <div class="data-item"><span class="label">📌 Posisi:</span> <span class="value posisi" id="dataPos">(0, 0)</span> m</div>
-            </div>
-
-            <div class="info-panel">
-                <div class="info-item"><span class="label">🎯 Status:</span> <span id="statusText" class="status-siap">SIAP</span></div>
-                <div class="info-item"><span class="label">📐 Sudut:</span> <span id="infoSudut">45</span>°</div>
-                <div class="info-item"><span class="label">📦 Jarak:</span> <span id="infoJarak">0</span> m</div>
-                <div class="info-item"><span class="label">⬆️ Tinggi Maks:</span> <span id="infoTinggi">0</span> m</div>
-                <div class="info-item"><span class="label">⏱️ Waktu Tempuh:</span> <span id="infoWaktuTempuh">0.00</span> s</div>
-            </div>
-        </div>
-
-        <div class="right-col">
-            <div class="panel-box">
-                <h3>📖 Konsep Gerak Parabola</h3>
-                <p>Gerak meriam adalah <strong>gerak parabola</strong>, yaitu perpaduan:</p>
-                <ul style="margin-left:16px;">
-                    <li><strong>GLB</strong> (Gerak Lurus Beraturan) pada arah <strong>horizontal (x)</strong> → kecepatan tetap (Vx = konstan)</li>
-                    <li><strong>GLBB</strong> (Gerak Lurus Berubah Beraturan) pada arah <strong>vertikal (y)</strong> → dipengaruhi gravitasi (Vy berubah)</li>
-                </ul>
-                <p style="margin-top:6px;">Hambatan udara <strong>diabaikan</strong> (kondisi ideal).</p>
-            </div>
-
-            <div class="panel-box">
-                <h3>📐 Rumus yang Digunakan</h3>
-                <div class="rumus">Vx = v₀ · cos(θ)</div>
-                <div class="rumus">Vy = v₀ · sin(θ) − g · t</div>
-                <div class="rumus">x = v₀ · cos(θ) · t</div>
-                <div class="rumus">y = v₀ · sin(θ) · t − ½ · g · t²</div>
-                <div style="font-size:12px;color:#666;margin-top:6px;">
-                    v₀ = kecepatan awal, θ = sudut, g = gravitasi, t = waktu
-                </div>
-                <div class="catatan">
-                    ⚠️ <strong>Catatan:</strong> Nilai gravitasi di simulasi ini <strong>bukan</strong> gravitasi Bumi (9,8 m/s²).<br>
-                    Nilai 0,25 m/s² digunakan agar <strong>lintasan lebih mudah diamati</strong> dalam layar. 
-                    Anda bisa mengubahnya dengan slider.
-                </div>
-            </div>
-
-            <div class="prediksi-box">
-                <h3>🧠 Prediksi Sebelum Simulasi</h3>
-                <p class="pertanyaan" id="pertanyaanPrediksi">
-                    Jika sudut meriam dinaikkan dari 30° menjadi 45° (dengan v₀ tetap), bagaimana jarak horizontalnya?
-                </p>
-                <div class="jawaban-prediksi" id="jawabanPrediksi">
-                    <button data-jawaban="bertambah">Bertambah</button>
-                    <button data-jawaban="berkurang">Berkurang</button>
-                    <button data-jawaban="tetap">Tetap</button>
-                </div>
-                <div id="hasilPrediksi" class="hasil-prediksi" style="display:none;"></div>
-                <button id="prediksiBaruBtn" class="btn btn-secondary" style="margin-top:8px;padding:6px 16px;font-size:12px;">🔄 Pertanyaan Baru</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    // ================================================================
-    // SIMULASI MERIAM - VERSI FINAL (SEMUA FITUR BERES)
-    // ================================================================
-
-    (function() {
-        "use strict";
-
-        // --- ELEMEN ---
-        const canvas = document.getElementById('simCanvas');
-        const ctx = canvas.getContext('2d');
-        const W = canvas.width;
-        const H = canvas.height;
-        const tooltipInfo = document.getElementById('tooltipInfo');
-        const tooltipJudul = document.getElementById('tooltipJudul');
-        const tooltipData = document.getElementById('tooltipData');
-
-        // --- KONTROL ---
-        const kecepatanAwalSlider = document.getElementById('kecepatanAwal');
-        const nilaiKecepatan = document.getElementById('nilaiKecepatan');
-        const sudutSlider = document.getElementById('sudut');
-        const nilaiSudut = document.getElementById('nilaiSudut');
-        const gravitasiSlider = document.getElementById('gravitasi');
-        const nilaiGravitasi = document.getElementById('nilaiGravitasi');
-        const mulaiBtn = document.getElementById('mulaiBtn');
-        const pauseBtn = document.getElementById('pauseBtn');
-        const resetBtn = document.getElementById('resetBtn');
-
-        // --- INFO ---
-        const statusText = document.getElementById('statusText');
-        const infoSudut = document.getElementById('infoSudut');
-        const infoJarak = document.getElementById('infoJarak');
-        const infoTinggi = document.getElementById('infoTinggi');
-        const infoWaktuTempuh = document.getElementById('infoWaktuTempuh');
-        const dataWaktu = document.getElementById('dataWaktu');
-        const dataVx = document.getElementById('dataVx');
-        const dataVy = document.getElementById('dataVy');
-        const dataSpeed = document.getElementById('dataSpeed');
-        const dataPos = document.getElementById('dataPos');
-
-        // --- PREDIKSI ---
-        const pertanyaanEl = document.getElementById('pertanyaanPrediksi');
-        const jawabanPrediksi = document.getElementById('jawabanPrediksi');
-        const hasilPrediksi = document.getElementById('hasilPrediksi');
-        const prediksiBaruBtn = document.getElementById('prediksiBaruBtn');
-
-        // --- KONSTANTA ---
-        const GROUND_Y = 650;
-        const START_X = 200;
-        const START_Y = GROUND_Y;
-        const MERIAM_X = 160;
-        const MERIAM_Y = GROUND_Y - 10;
-        const LARAS_PANJANG = 70;
-        const MAX_TRAIL = 120;
-
-        // --- VARIABEL ---
-        let v0 = 14, sudut = 45, g = 0.25, dt = 1;
-        let x = START_X, y = START_Y, vx = 0, vy = 0, waktu = 0;
-        let trail = [];
-        let running = false, paused = false;
-        let animId = null;
-        let jarakTempuh = 0, tinggiMaks = 0, waktuTempuh = 0;
-        let posisiAwalX = START_X;
-        let titikList = [];
-        let prediksiSelesai = false;
-        let pertanyaanAktif = null;
-
-        // --- PERTANYAAN PREDIKSI ---
-        const PERTANYAAN = [
-            {
-                q: 'Jika sudut meriam dinaikkan dari 30° menjadi 45° (dengan v₀ tetap), bagaimana jarak horizontalnya?',
-                jawaban: 'bertambah',
-                penjelasan_benar: 'Sudut yang lebih besar (hingga 45°) menghasilkan jarak yang lebih jauh.',
-                penjelasan_salah: 'Coba ingat: sudut yang lebih besar (hingga 45°) menghasilkan jarak yang lebih jauh.'
-            },
-            {
-                q: 'Jika sudut meriam dinaikkan dari 45° menjadi 60° (dengan v₀ tetap), bagaimana jarak horizontalnya?',
-                jawaban: 'berkurang',
-                penjelasan_benar: 'Sudut di atas 45° justru mengurangi jarak horizontal.',
-                penjelasan_salah: 'Coba ingat: sudut di atas 45° justru mengurangi jarak horizontal.'
-            },
-            {
-                q: 'Jika kecepatan awal diperbesar (dengan sudut tetap), bagaimana tinggi maksimumnya?',
-                jawaban: 'bertambah',
-                penjelasan_benar: 'Kecepatan awal yang lebih besar menghasilkan tinggi maksimum yang lebih tinggi.',
-                penjelasan_salah: 'Coba ingat: kecepatan awal berbanding lurus dengan tinggi maksimum.'
-            },
-            {
-                q: 'Jika gravitasi diperbesar (dengan v₀ dan sudut tetap), bagaimana jarak horizontalnya?',
-                jawaban: 'berkurang',
-                penjelasan_benar: 'Gravitasi yang lebih besar membuat benda lebih cepat jatuh, sehingga jarak horizontal berkurang.',
-                penjelasan_salah: 'Coba ingat: gravitasi yang lebih besar membuat benda lebih cepat jatuh, jarak horizontal berkurang.'
-            },
-            {
-                q: 'Jika kecepatan awal diperbesar (dengan sudut tetap), bagaimana jarak horizontalnya?',
-                jawaban: 'bertambah',
-                penjelasan_benar: 'Kecepatan awal yang lebih besar menghasilkan jarak horizontal yang lebih jauh.',
-                penjelasan_salah: 'Coba ingat: kecepatan awal berbanding lurus dengan jarak horizontal.'
+    // --- EKSTRAK 5 TITIK ---
+    function ekstrakTitikDariTrail() {
+        if (trail.length < 2) return;
+        const first = trail[0];
+        const last = trail[trail.length - 1];
+        const jarakHorizontal = last.x - first.x;
+        const persentase = [0, 0.25, 0.5, 0.75, 1.0];
+        const label = ['Awal', '25%', '50% (Puncak)', '75%', 'Akhir'];
+        const warna = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#6BCB77', '#4D96FF'];
+        titikList = [];
+        for (let i = 0; i < persentase.length; i++) {
+            const targetX = first.x + jarakHorizontal * persentase[i];
+            let closestIdx = 0, minDiff = Infinity;
+            for (let j = 0; j < trail.length; j++) {
+                const diff = Math.abs(trail[j].x - targetX);
+                if (diff < minDiff) { minDiff = diff; closestIdx = j; }
             }
-        ];
-
-        // --- KONVERSI ---
-        function derajatKeRadian(deg) { return deg * Math.PI / 180; }
-
-        // --- UPDATE DATA ---
-        function updateDataPanel() {
-            const kecepatanTotal = Math.sqrt(vx * vx + vy * vy);
-            dataWaktu.textContent = waktu.toFixed(2);
-            dataVx.textContent = vx.toFixed(2);
-            dataVy.textContent = vy.toFixed(2);
-            dataSpeed.textContent = kecepatanTotal.toFixed(2);
-            dataPos.textContent = `(${Math.round(x)}, ${Math.round(GROUND_Y - y)})`;
+            const p = trail[closestIdx];
+            titikList.push({
+                x: p.x, y: p.y,
+                vx: p.vx, vy: p.vy,
+                waktu: p.waktu,
+                label: label[i],
+                warna: warna[i]
+            });
         }
-
-        // --- EKSTRAK 5 TITIK ---
-        function ekstrakTitikDariTrail() {
-            if (trail.length < 2) return;
-            const first = trail[0];
-            const last = trail[trail.length - 1];
-            const jarakHorizontal = last.x - first.x;
-            const persentase = [0, 0.25, 0.5, 0.75, 1.0];
-            const label = ['Awal', '25%', '50% (Puncak)', '75%', 'Akhir'];
-            const warna = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#6BCB77', '#4D96FF'];
-            titikList = [];
-            for (let i = 0; i < persentase.length; i++) {
-                const targetX = first.x + jarakHorizontal * persentase[i];
-                let closestIdx = 0, minDiff = Infinity;
-                for (let j = 0; j < trail.length; j++) {
-                    const diff = Math.abs(trail[j].x - targetX);
-                    if (diff < minDiff) { minDiff = diff; closestIdx = j; }
-                }
-                const p = trail[closestIdx];
-                titikList.push({
-                    x: p.x, y: p.y,
-                    vx: p.vx, vy: p.vy,
-                    waktu: p.waktu,
-                    label: label[i],
-                    warna: warna[i]
-                });
-            }
-            if (titikList.length >= 3) {
-                const puncak = titikList[2];
-                tinggiMaks = Math.round(GROUND_Y - puncak.y);
-                infoTinggi.textContent = tinggiMaks;
-            }
+        if (titikList.length >= 3) {
+            const puncak = titikList[2];
+            tinggiMaks = Math.round(GROUND_Y - puncak.y);
+            infoTinggi.textContent = tinggiMaks;
         }
+    }
 
-        // --- ANIMASI CONTROL ---
-        function startAnimation() {
-            if (!animId) {
-                animId = requestAnimationFrame(animate);
-            }
+    // --- ANIMASI CONTROL ---
+    function startAnimation() {
+        if (!animId) {
+            animId = requestAnimationFrame(animate);
         }
-        function stopAnimation() {
-            if (animId) {
-                cancelAnimationFrame(animId);
-                animId = null;
-            }
+    }
+    function stopAnimation() {
+        if (animId) {
+            cancelAnimationFrame(animId);
+            animId = null;
         }
+    }
 
-        // --- RESET ---
-        function resetSimulasi() {
-            v0 = parseFloat(kecepatanAwalSlider.value);
-            sudut = parseFloat(sudutSlider.value);
-            g = parseFloat(gravitasiSlider.value);
-            nilaiKecepatan.textContent = v0;
-            nilaiSudut.textContent = sudut;
-            nilaiGravitasi.textContent = g.toFixed(2);
-            infoSudut.textContent = sudut;
+    // --- RESET ---
+    function resetSimulasi() {
+        v0 = parseFloat(kecepatanAwalSlider.value);
+        sudut = parseFloat(sudutSlider.value);
+        g = parseFloat(gravitasiSlider.value);
+        nilaiKecepatan.textContent = v0;
+        nilaiSudut.textContent = sudut;
+        nilaiGravitasi.textContent = g.toFixed(2);
+        infoSudut.textContent = sudut;
 
-            const rad = derajatKeRadian(sudut);
-            vx = v0 * Math.cos(rad);
-            vy = -v0 * Math.sin(rad);
-            x = START_X; y = START_Y;
-            posisiAwalX = START_X;
-            waktu = 0; waktuTempuh = 0;
-            trail = []; titikList = [];
-            jarakTempuh = 0; tinggiMaks = 0;
-            running = false; paused = false;
+        const rad = derajatKeRadian(sudut);
+        vx = v0 * Math.cos(rad);
+        vy = -v0 * Math.sin(rad);
+        x = START_X; y = START_Y;
+        posisiAwalX = START_X;
+        waktu = 0; waktuTempuh = 0;
+        trail = []; titikList = [];
+        jarakTempuh = 0; tinggiMaks = 0;
+        running = false; paused = false;
+        pauseBtn.disabled = true;
+        pauseBtn.textContent = '⏸️ Pause';
+        mulaiBtn.disabled = false;
+        mulaiBtn.textContent = '🚀 LUNCURKAN';
+        statusText.textContent = 'SIAP';
+        statusText.className = 'status-siap';
+        infoJarak.textContent = '0';
+        infoTinggi.textContent = '0';
+        infoWaktuTempuh.textContent = '0.00';
+        prediksiSelesai = false;
+        hasilPrediksi.style.display = 'none';
+        tooltipInfo.style.display = 'none';
+        document.querySelectorAll('#jawabanPrediksi button').forEach(b => {
+            b.style.background = 'white';
+            b.style.color = '#2a5298';
+            b.disabled = false;
+        });
+        updateDataPanel();
+        draw();
+        stopAnimation();
+    }
+
+    // --- MULAI ---
+    function mulaiSimulasi() {
+        if (running && !paused) return;
+        if (paused) {
+            paused = false;
+            pauseBtn.textContent = '⏸️ Pause';
+            statusText.textContent = 'TERBANG 🚀';
+            statusText.className = 'status-terbang';
+            startAnimation();
+            return;
+        }
+        const rad = derajatKeRadian(sudut);
+        vx = v0 * Math.cos(rad);
+        vy = -v0 * Math.sin(rad);
+        x = START_X; y = START_Y;
+        posisiAwalX = START_X;
+        waktu = 0;
+        trail = []; titikList = [];
+        jarakTempuh = 0; tinggiMaks = 0;
+        running = true; paused = false;
+        pauseBtn.disabled = false;
+        pauseBtn.textContent = '⏸️ Pause';
+        mulaiBtn.textContent = '⏳ BERJALAN...';
+        statusText.textContent = 'TERBANG 🚀';
+        statusText.className = 'status-terbang';
+        prediksiSelesai = false;
+        hasilPrediksi.style.display = 'none';
+        tooltipInfo.style.display = 'none';
+        document.querySelectorAll('#jawabanPrediksi button').forEach(b => {
+            b.style.background = 'white';
+            b.style.color = '#2a5298';
+            b.disabled = false;
+        });
+        updateDataPanel();
+        startAnimation();
+    }
+
+    // --- PAUSE ---
+    function togglePause() {
+        if (!running) return;
+        paused = !paused;
+        pauseBtn.textContent = paused ? '▶️ Lanjut' : '⏸️ Pause';
+        statusText.textContent = paused ? '⏸️ PAUSE' : 'TERBANG 🚀';
+        statusText.className = paused ? 'status-pause' : 'status-terbang';
+        if (paused) stopAnimation();
+        else startAnimation();
+    }
+
+    // --- FISIKA ---
+    function updateFisika() {
+        if (!running || paused) return;
+
+        trail.push({ x, y, vx, vy, waktu });
+        if (trail.length > MAX_TRAIL) trail.shift();
+
+        vy += g * dt;
+        x += vx * dt;
+        y += vy * dt;
+        waktu += dt;
+
+        if (x - posisiAwalX > jarakTempuh) jarakTempuh = x - posisiAwalX;
+        if ((GROUND_Y - y) > tinggiMaks) tinggiMaks = GROUND_Y - y;
+
+        if (y >= GROUND_Y) {
+            y = GROUND_Y; vx = 0; vy = 0;
+            running = false;
+            waktuTempuh = waktu;
+            trail.push({ x, y, vx, vy, waktu });
+            if (trail.length > MAX_TRAIL) trail.shift();
+            ekstrakTitikDariTrail();
+            mulaiBtn.disabled = false;
+            mulaiBtn.textContent = '🚀 LUNCURKAN LAGI';
             pauseBtn.disabled = true;
             pauseBtn.textContent = '⏸️ Pause';
-            mulaiBtn.disabled = false;
-            mulaiBtn.textContent = '🚀 LUNCURKAN';
-            statusText.textContent = 'SIAP';
-            statusText.className = 'status-siap';
-            infoJarak.textContent = '0';
-            infoTinggi.textContent = '0';
-            infoWaktuTempuh.textContent = '0.00';
-            prediksiSelesai = false;
-            hasilPrediksi.style.display = 'none';
-            tooltipInfo.style.display = 'none';
-            document.querySelectorAll('#jawabanPrediksi button').forEach(b => {
-                b.style.background = 'white';
-                b.style.color = '#2a5298';
-                b.disabled = false;
-            });
-            updateDataPanel();
-            draw();
+            statusText.textContent = 'SELESAI 🎯';
+            statusText.className = 'status-selesai';
+            infoJarak.textContent = Math.round(jarakTempuh);
+            infoTinggi.textContent = Math.round(tinggiMaks);
+            infoWaktuTempuh.textContent = waktuTempuh.toFixed(2);
+            tampilkanHasilPrediksi();
             stopAnimation();
         }
 
-        // --- MULAI ---
-        function mulaiSimulasi() {
-            if (running && !paused) return;
-            if (paused) {
-                paused = false;
-                pauseBtn.textContent = '⏸️ Pause';
-                statusText.textContent = 'TERBANG 🚀';
-                statusText.className = 'status-terbang';
-                startAnimation();
-                return;
-            }
-            const rad = derajatKeRadian(sudut);
-            vx = v0 * Math.cos(rad);
-            vy = -v0 * Math.sin(rad);
-            x = START_X; y = START_Y;
-            posisiAwalX = START_X;
-            waktu = 0;
-            trail = []; titikList = [];
-            jarakTempuh = 0; tinggiMaks = 0;
-            running = true; paused = false;
-            pauseBtn.disabled = false;
+        if (x > W - 30) { x = W - 30; vx = 0; vy = 0; running = false; ekstrakTitikDariTrail(); stopAnimation(); }
+        if (x < 30) { x = 30; vx = 0; vy = 0; running = false; ekstrakTitikDariTrail(); stopAnimation(); }
+        if (running && y < 30) { y = 30; vy = -vy * 0.1; }
+
+        if (running && Math.abs(vx) < 0.01 && Math.abs(vy) < 0.01 && y >= GROUND_Y - 1) {
+            running = false;
+            trail.push({ x, y, vx, vy, waktu });
+            if (trail.length > MAX_TRAIL) trail.shift();
+            ekstrakTitikDariTrail();
+            mulaiBtn.disabled = false;
+            mulaiBtn.textContent = '🚀 LUNCURKAN LAGI';
+            pauseBtn.disabled = true;
             pauseBtn.textContent = '⏸️ Pause';
-            mulaiBtn.textContent = '⏳ BERJALAN...';
-            statusText.textContent = 'TERBANG 🚀';
-            statusText.className = 'status-terbang';
-            prediksiSelesai = false;
-            hasilPrediksi.style.display = 'none';
+            statusText.textContent = 'SELESAI 🎯';
+            statusText.className = 'status-selesai';
+            infoJarak.textContent = Math.round(jarakTempuh);
+            infoTinggi.textContent = Math.round(tinggiMaks);
+            infoWaktuTempuh.textContent = waktuTempuh.toFixed(2);
+            tampilkanHasilPrediksi();
+            stopAnimation();
+        }
+
+        updateDataPanel();
+    }
+
+    // --- PREDIKSI (PINTAR) ---
+    function setupPrediksi() {
+        const idx = Math.floor(Math.random() * PERTANYAAN.length);
+        pertanyaanAktif = PERTANYAAN[idx];
+        pertanyaanEl.textContent = pertanyaanAktif.q;
+        
+        const tombolJawaban = document.querySelectorAll('#jawabanPrediksi button');
+        tombolJawaban.forEach(b => {
+            b.style.background = 'white';
+            b.style.color = '#2a5298';
+            b.disabled = false;
+        });
+        
+        hasilPrediksi.style.display = 'none';
+        prediksiSelesai = false;
+    }
+
+    function tampilkanHasilPrediksi() {
+        if (prediksiSelesai || !pertanyaanAktif) return;
+        prediksiSelesai = true;
+        
+        const jawabanDipilih = document.querySelector('#jawabanPrediksi button[style*="background"]');
+        if (!jawabanDipilih) {
+            hasilPrediksi.style.display = 'block';
+            hasilPrediksi.className = 'hasil-prediksi';
+            hasilPrediksi.innerHTML = '⚠️ Silakan pilih prediksi Anda terlebih dahulu!';
+            return;
+        }
+        
+        const jawabanUser = jawabanDipilih.dataset.jawaban;
+        const jawabanBenar = pertanyaanAktif.jawaban;
+        const benar = (jawabanUser === jawabanBenar);
+        
+        hasilPrediksi.style.display = 'block';
+        hasilPrediksi.className = 'hasil-prediksi ' + (benar ? 'benar' : 'salah');
+        
+        if (benar) {
+            hasilPrediksi.innerHTML = `✅ <strong>Benar!</strong> ${pertanyaanAktif.penjelasan_benar}`;
+        } else {
+            hasilPrediksi.innerHTML = `❌ <strong>Kurang tepat.</strong> ${pertanyaanAktif.penjelasan_salah}`;
+        }
+    }
+
+    // --- GAMBAR MERIAM ---
+    function drawMeriam(angle) {
+        const rad = derajatKeRadian(angle);
+        const cx = MERIAM_X, cy = MERIAM_Y;
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#3E2723';
+        ctx.beginPath();
+        ctx.arc(cx - 25, cy + 8, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + 25, cy + 8, 16, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#5D4037';
+        ctx.beginPath();
+        ctx.arc(cx - 25, cy + 8, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx + 25, cy + 8, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#4E342E';
+        ctx.fillRect(cx - 28, cy - 16, 56, 24);
+        ctx.strokeStyle = '#3E2723';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(cx - 28, cy - 16, 56, 24);
+        ctx.fillStyle = '#5D4037';
+        ctx.fillRect(cx - 8, cy - 10, 16, 12);
+
+        ctx.save();
+        ctx.translate(cx + 28, cy - 3);
+        ctx.rotate(-rad);
+        const grad = ctx.createLinearGradient(0, -6, 0, 6);
+        grad.addColorStop(0, '#4E342E');
+        grad.addColorStop(0.5, '#6D4C41');
+        grad.addColorStop(1, '#3E2723');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, -6, LARAS_PANJANG, 12);
+        ctx.strokeStyle = '#2C1A0E';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, -6, LARAS_PANJANG, 12);
+        ctx.fillStyle = '#5D4037';
+        ctx.fillRect(LARAS_PANJANG - 4, -8, 6, 16);
+        ctx.strokeRect(LARAS_PANJANG - 4, -8, 6, 16);
+        ctx.fillStyle = '#2C1A0E';
+        ctx.beginPath();
+        ctx.arc(LARAS_PANJANG + 2, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = 'bold 16px monospace';
+        ctx.fillText(`Sudut: ${angle}°`, cx - 28, cy - 40);
+    }
+
+    // --- GAMBAR SEMUA ---
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < W; i += 40) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, H);
+            ctx.stroke();
+        }
+        for (let i = 0; i < H; i += 40) {
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(W, i);
+            ctx.stroke();
+        }
+
+        const groundGrad = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+        groundGrad.addColorStop(0, '#4CAF50');
+        groundGrad.addColorStop(0.1, '#388E3C');
+        groundGrad.addColorStop(1, '#1B5E20');
+        ctx.fillStyle = groundGrad;
+        ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+        ctx.strokeStyle = '#66BB6A';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND_Y);
+        ctx.lineTo(W, GROUND_Y);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.font = '14px sans-serif';
+        ctx.fillText('Tanah', W - 80, GROUND_Y + 32);
+
+        drawMeriam(sudut);
+
+        if (trail.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(trail[0].x, trail[0].y);
+            for (let i = 1; i < trail.length; i++) {
+                ctx.lineTo(trail[i].x, trail[i].y);
+            }
+            ctx.strokeStyle = 'rgba(255, 220, 100, 0.2)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 6]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            for (let i = 0; i < trail.length; i += 2) {
+                const alpha = i / trail.length;
+                ctx.beginPath();
+                ctx.arc(trail[i].x, trail[i].y, 1.5 + alpha * 2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 200, 80, ${0.2 + alpha * 0.5})`;
+                ctx.fill();
+            }
+        }
+
+        for (let i = 0; i < titikList.length; i++) {
+            const p = titikList[i];
+            const radius = 12;
+            const color = p.warna || '#FF6B6B';
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            const labelText = p.label;
+            ctx.font = 'bold 11px sans-serif';
+            const metrics = ctx.measureText(labelText);
+            const tw = metrics.width + 10;
+            const th = 20;
+            let lx = p.x,
+                ly = (i < 3) ? p.y - 24 : p.y + 24;
+            if (lx - tw / 2 < 0) lx = tw / 2 + 10;
+            if (lx + tw / 2 > W) lx = W - tw / 2 - 10;
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(lx - tw / 2, ly - th / 2, tw, th);
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(labelText, lx, ly);
+            ctx.textBaseline = 'alphabetic';
+            ctx.textAlign = 'left';
+        }
+
+        const radius = 22;
+        const grad = ctx.createRadialGradient(x - 6, y - 6, 4, x, y, radius + 8);
+        grad.addColorStop(0, '#FFD740');
+        grad.addColorStop(0.3, '#FFAB00');
+        grad.addColorStop(0.7, '#E65100');
+        grad.addColorStop(1, '#BF360C');
+        ctx.shadowColor = 'rgba(255, 100, 0, 0.5)';
+        ctx.shadowBlur = 25;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(x - 6, y - 8, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fill();
+
+        if (running && !paused) {
+            const flameLen = 20 + Math.random() * 18;
+            const angle = Math.atan2(vy, vx);
+            const fx = x - flameLen * Math.cos(angle);
+            const fy = y - flameLen * Math.sin(angle);
+            const flameGrad = ctx.createRadialGradient(fx, fy, 3, fx, fy, flameLen);
+            flameGrad.addColorStop(0, 'rgba(255, 220, 80, 0.8)');
+            flameGrad.addColorStop(0.4, 'rgba(255, 120, 0, 0.5)');
+            flameGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
+            ctx.beginPath();
+            ctx.arc(fx, fy, flameLen, 0, Math.PI * 2);
+            ctx.fillStyle = flameGrad;
+            ctx.fill();
+        }
+
+        if (running && !paused && (Math.abs(vx) > 0.2 || Math.abs(vy) > 0.2)) {
+            const panjang = Math.min(80, Math.sqrt(vx * vx + vy * vy) * 2.5);
+            const angle = Math.atan2(vy, vx);
+            const ex = x + panjang * Math.cos(angle);
+            const ey = y + panjang * Math.sin(angle);
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(ex, ey);
+            ctx.strokeStyle = '#00E5FF';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            const kepala = 10;
+            const a1 = angle + 2.2,
+                a2 = angle - 2.2;
+            ctx.beginPath();
+            ctx.moveTo(ex, ey);
+            ctx.lineTo(ex - kepala * Math.cos(a1), ey - kepala * Math.sin(a1));
+            ctx.moveTo(ex, ey);
+            ctx.lineTo(ex - kepala * Math.cos(a2), ey - kepala * Math.sin(a2));
+            ctx.strokeStyle = '#00E5FF';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.fillStyle = '#00E5FF';
+            ctx.font = 'bold 12px monospace';
+            ctx.fillText(`v = ${Math.sqrt(vx * vx + vy * vy).toFixed(2)}`, x + 10, y - 16);
+        }
+
+        if (!running && trail.length === 0) {
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            ctx.font = '20px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🎯 Atur parameter, lalu klik "LUNCURKAN"', W / 2, 35);
+            ctx.textAlign = 'left';
+        }
+
+        if (!running && trail.length > 10 && y >= GROUND_Y - 3) {
+            for (let i = 0; i < 12; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 8 + Math.random() * 25;
+                const px = x + Math.cos(angle) * dist;
+                const py = GROUND_Y - 5 + Math.sin(angle) * dist * 0.3;
+                ctx.beginPath();
+                ctx.arc(px, py, 1.5 + Math.random() * 3, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(200, 180, 150, ${0.1 + Math.random() * 0.25})`;
+                ctx.fill();
+            }
+        }
+    }
+
+    // --- ANIMASI ---
+    function animate() {
+        if (running && !paused) {
+            updateFisika();
+            draw();
+            animId = requestAnimationFrame(animate);
+        } else if (running && paused) {
+            draw();
+            animId = requestAnimationFrame(animate);
+        } else {
+            stopAnimation();
+            draw();
+        }
+    }
+
+    // --- KLIK TITIK ---
+    function handleCanvasClick(event) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const mouseX = (event.clientX - rect.left) * scaleX;
+        const mouseY = (event.clientY - rect.top) * scaleY;
+
+        let titikTerdekat = null;
+        let jarakTerdekat = Infinity;
+
+        for (let i = 0; i < titikList.length; i++) {
+            const p = titikList[i];
+            const dx = mouseX - p.x;
+            const dy = mouseY - p.y;
+            const jarak = Math.sqrt(dx * dx + dy * dy);
+            if (jarak < 30 && jarak < jarakTerdekat) {
+                jarakTerdekat = jarak;
+                titikTerdekat = p;
+            }
+        }
+
+        if (titikTerdekat) {
+            const vTotal = Math.sqrt(titikTerdekat.vx * titikTerdekat.vx + titikTerdekat.vy * titikTerdekat.vy);
+            tooltipJudul.textContent = titikTerdekat.label;
+            tooltipData.innerHTML = `
+                <div>⏱️ Waktu: <strong>${titikTerdekat.waktu.toFixed(2)} s</strong></div>
+                <div>🔵 Vx: <strong style="color:#4fc3f7;">${titikTerdekat.vx.toFixed(2)} m/s</strong></div>
+                <div>🟠 Vy: <strong style="color:#ffb74d;">${titikTerdekat.vy.toFixed(2)} m/s</strong></div>
+                <div>📈 |v|: <strong style="color:#81c784;">${vTotal.toFixed(2)} m/s</strong></div>
+                <div>📌 Posisi: <strong>(${Math.round(titikTerdekat.x)}, ${Math.round(GROUND_Y - titikTerdekat.y)})</strong></div>
+            `;
+            const displayX = titikTerdekat.x / scaleX;
+            const displayY = titikTerdekat.y / scaleY;
+            tooltipInfo.style.left = displayX + 'px';
+            tooltipInfo.style.top = displayY + 'px';
+            tooltipInfo.style.display = 'block';
+        } else {
             tooltipInfo.style.display = 'none';
+        }
+    }
+
+    canvas.addEventListener('click', handleCanvasClick);
+
+    // --- EVENT PREDIKSI ---
+    document.querySelectorAll('#jawabanPrediksi button').forEach(btn => {
+        btn.addEventListener('click', function() {
             document.querySelectorAll('#jawabanPrediksi button').forEach(b => {
                 b.style.background = 'white';
                 b.style.color = '#2a5298';
-                b.disabled = false;
             });
-            updateDataPanel();
-            startAnimation();
-        }
-
-        // --- PAUSE ---
-        function togglePause() {
-            if (!running) return;
-            paused = !paused;
-            pauseBtn.textContent = paused ? '▶️ Lanjut' : '⏸️ Pause';
-            statusText.textContent = paused ? '⏸️ PAUSE' : 'TERBANG 🚀';
-            statusText.className = paused ? 'status-pause' : 'status-terbang';
-            if (paused) stopAnimation();
-            else startAnimation();
-        }
-
-        // --- FISIKA ---
-        function updateFisika() {
-            if (!running || paused) return;
-
-            trail.push({ x, y, vx, vy, waktu });
-            if (trail.length > MAX_TRAIL) trail.shift();
-
-            vy += g * dt;
-            x += vx * dt;
-            y += vy * dt;
-            waktu += dt;
-
-            if (x - posisiAwalX > jarakTempuh) jarakTempuh = x - posisiAwalX;
-            if ((GROUND_Y - y) > tinggiMaks) tinggiMaks = GROUND_Y - y;
-
-            if (y >= GROUND_Y) {
-                y = GROUND_Y; vx = 0; vy = 0;
-                running = false;
-                waktuTempuh = waktu;
-                trail.push({ x, y, vx, vy, waktu });
-                if (trail.length > MAX_TRAIL) trail.shift();
-                ekstrakTitikDariTrail();
-                mulaiBtn.disabled = false;
-                mulaiBtn.textContent = '🚀 LUNCURKAN LAGI';
-                pauseBtn.disabled = true;
-                pauseBtn.textContent = '⏸️ Pause';
-                statusText.textContent = 'SELESAI 🎯';
-                statusText.className = 'status-selesai';
-                infoJarak.textContent = Math.round(jarakTempuh);
-                infoTinggi.textContent = Math.round(tinggiMaks);
-                infoWaktuTempuh.textContent = waktuTempuh.toFixed(2);
+            this.style.background = '#2a5298';
+            this.style.color = 'white';
+            if (!running && trail.length > 0) {
                 tampilkanHasilPrediksi();
-                stopAnimation();
             }
-
-            if (x > W - 30) { x = W - 30; vx = 0; vy = 0; running = false; ekstrakTitikDariTrail(); stopAnimation(); }
-            if (x < 30) { x = 30; vx = 0; vy = 0; running = false; ekstrakTitikDariTrail(); stopAnimation(); }
-            if (running && y < 30) { y = 30; vy = -vy * 0.1; }
-
-            if (running && Math.abs(vx) < 0.01 && Math.abs(vy) < 0.01 && y >= GROUND_Y - 1) {
-                running = false;
-                trail.push({ x, y, vx, vy, waktu });
-                if (trail.length > MAX_TRAIL) trail.shift();
-                ekstrakTitikDariTrail();
-                mulaiBtn.disabled = false;
-                mulaiBtn.textContent = '🚀 LUNCURKAN LAGI';
-                pauseBtn.disabled = true;
-                pauseBtn.textContent = '⏸️ Pause';
-                statusText.textContent = 'SELESAI 🎯';
-                statusText.className = 'status-selesai';
-                infoJarak.textContent = Math.round(jarakTempuh);
-                infoTinggi.textContent = Math.round(tinggiMaks);
-                infoWaktuTempuh.textContent = waktuTempuh.toFixed(2);
-                tampilkanHasilPrediksi();
-                stopAnimation();
-            }
-
-            updateDataPanel();
-        }
-
-        // --- PREDIKSI ---
-        function setupPrediksi() {
-            const idx = Math.floor(Math.random() * PERTANYAAN.length);
-            pertanyaanAktif = PERTANYAAN[idx];
-            pertanyaanEl.textContent = pertanyaanAktif.q;
-            
-            const tombolJawaban = document.querySelectorAll('#jawabanPrediksi button');
-            tombolJawaban.forEach(b => {
-                b.style.background = 'white';
-                b.style.color = '#2a5298';
-                b.disabled = false;
-            });
-            
-            hasilPrediksi.style.display = 'none';
-            prediksiSelesai = false;
-        }
-
-        function tampilkanHasilPrediksi() {
-            if (prediksiSelesai || !pertanyaanAktif) return;
-            prediksiSelesai = true;
-            
-            const jawabanDipilih = document.querySelector('#jawabanPrediksi button[style*="background"]');
-            if (!jawabanDipilih) {
-                hasilPrediksi.style.display = 'block';
-                hasilPrediksi.className = 'hasil-prediksi';
-                hasilPrediksi.innerHTML = '⚠️ Silakan pilih prediksi Anda terlebih dahulu!';
-                return;
-            }
-            
-            const jawabanUser = jawabanDipilih.dataset.jawaban;
-            const jawabanBenar = pertanyaanAktif.jawaban;
-            const benar = (jawabanUser === jawabanBenar);
-            
-            hasilPrediksi.style.display = 'block';
-            hasilPrediksi.className = 'hasil-prediksi ' + (benar ? 'benar' : 'salah');
-            
-            if (benar) {
-                hasilPrediksi.innerHTML = `✅ <strong>Benar!</strong> ${pertanyaanAktif.penjelasan_benar}`;
-            } else {
-                hasilPrediksi.innerHTML = `❌ <strong>Kurang tepat.</strong> ${pertanyaanAktif.penjelasan_salah}`;
-            }
-        }
-
-        // --- GAMBAR MERIAM ---
-        function drawMeriam(angle) {
-            const rad = derajatKeRadian(angle);
-            const cx = MERIAM_X, cy = MERIAM_Y;
-            ctx.shadowBlur = 0;
-
-            ctx.fillStyle = '#3E2723';
-            ctx.beginPath();
-            ctx.arc(cx - 25, cy + 8, 16, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(cx + 25, cy + 8, 16, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#5D4037';
-            ctx.beginPath();
-            ctx.arc(cx - 25, cy + 8, 5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(cx + 25, cy + 8, 5, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#4E342E';
-            ctx.fillRect(cx - 28, cy - 16, 56, 24);
-            ctx.strokeStyle = '#3E2723';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(cx - 28, cy - 16, 56, 24);
-            ctx.fillStyle = '#5D4037';
-            ctx.fillRect(cx - 8, cy - 10, 16, 12);
-
-            ctx.save();
-            ctx.translate(cx + 28, cy - 3);
-            ctx.rotate(-rad);
-            const grad = ctx.createLinearGradient(0, -6, 0, 6);
-            grad.addColorStop(0, '#4E342E');
-            grad.addColorStop(0.5, '#6D4C41');
-            grad.addColorStop(1, '#3E2723');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, -6, LARAS_PANJANG, 12);
-            ctx.strokeStyle = '#2C1A0E';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(0, -6, LARAS_PANJANG, 12);
-            ctx.fillStyle = '#5D4037';
-            ctx.fillRect(LARAS_PANJANG - 4, -8, 6, 16);
-            ctx.strokeRect(LARAS_PANJANG - 4, -8, 6, 16);
-            ctx.fillStyle = '#2C1A0E';
-            ctx.beginPath();
-            ctx.arc(LARAS_PANJANG + 2, 0, 4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-
-            ctx.fillStyle = 'rgba(255,255,255,0.85)';
-            ctx.font = 'bold 16px monospace';
-            ctx.fillText(`Sudut: ${angle}°`, cx - 28, cy - 40);
-        }
-
-        // --- GAMBAR SEMUA ---
-        function draw() {
-            ctx.clearRect(0, 0, W, H);
-
-            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-            ctx.lineWidth = 0.5;
-            for (let i = 0; i < W; i += 40) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, H);
-                ctx.stroke();
-            }
-            for (let i = 0; i < H; i += 40) {
-                ctx.beginPath();
-                ctx.moveTo(0, i);
-                ctx.lineTo(W, i);
-                ctx.stroke();
-            }
-
-            const groundGrad = ctx.createLinearGradient(0, GROUND_Y, 0, H);
-            groundGrad.addColorStop(0, '#4CAF50');
-            groundGrad.addColorStop(0.1, '#388E3C');
-            groundGrad.addColorStop(1, '#1B5E20');
-            ctx.fillStyle = groundGrad;
-            ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
-            ctx.strokeStyle = '#66BB6A';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, GROUND_Y);
-            ctx.lineTo(W, GROUND_Y);
-            ctx.stroke();
-            ctx.fillStyle = 'rgba(255,255,255,0.25)';
-            ctx.font = '14px sans-serif';
-            ctx.fillText('Tanah', W - 80, GROUND_Y + 32);
-
-            drawMeriam(sudut);
-
-            if (trail.length > 1) {
-                ctx.beginPath();
-                ctx.moveTo(trail[0].x, trail[0].y);
-                for (let i = 1; i < trail.length; i++) {
-                    ctx.lineTo(trail[i].x, trail[i].y);
-                }
-                ctx.strokeStyle = 'rgba(255, 220, 100, 0.2)';
-                ctx.lineWidth = 1.5;
-                ctx.setLineDash([4, 6]);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                for (let i = 0; i < trail.length; i += 2) {
-                    const alpha = i / trail.length;
-                    ctx.beginPath();
-                    ctx.arc(trail[i].x, trail[i].y, 1.5 + alpha * 2, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(255, 200, 80, ${0.2 + alpha * 0.5})`;
-                    ctx.fill();
-                }
-            }
-
-            for (let i = 0; i < titikList.length; i++) {
-                const p = titikList[i];
-                const radius = 12;
-                const color = p.warna || '#FF6B6B';
-                ctx.shadowColor = color;
-                ctx.shadowBlur = 15;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
-                ctx.fillStyle = color;
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-
-                const labelText = p.label;
-                ctx.font = 'bold 11px sans-serif';
-                const metrics = ctx.measureText(labelText);
-                const tw = metrics.width + 10;
-                const th = 20;
-                let lx = p.x,
-                    ly = (i < 3) ? p.y - 24 : p.y + 24;
-                if (lx - tw / 2 < 0) lx = tw / 2 + 10;
-                if (lx + tw / 2 > W) lx = W - tw / 2 - 10;
-                ctx.fillStyle = 'rgba(0,0,0,0.6)';
-                ctx.fillRect(lx - tw / 2, ly - th / 2, tw, th);
-                ctx.fillStyle = '#ffffff';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(labelText, lx, ly);
-                ctx.textBaseline = 'alphabetic';
-                ctx.textAlign = 'left';
-            }
-
-            const radius = 22;
-            const grad = ctx.createRadialGradient(x - 6, y - 6, 4, x, y, radius + 8);
-            grad.addColorStop(0, '#FFD740');
-            grad.addColorStop(0.3, '#FFAB00');
-            grad.addColorStop(0.7, '#E65100');
-            grad.addColorStop(1, '#BF360C');
-            ctx.shadowColor = 'rgba(255, 100, 0, 0.5)';
-            ctx.shadowBlur = 25;
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.fillStyle = grad;
-            ctx.fill();
-            ctx.shadowBlur = 0;
-            ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(x - 6, y - 8, 6, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255,255,255,0.15)';
-            ctx.fill();
-
-            if (running && !paused) {
-                const flameLen = 20 + Math.random() * 18;
-                const angle = Math.atan2(vy, vx);
-                const fx = x - flameLen * Math.cos(angle);
-                const fy = y - flameLen * Math.sin(angle);
-                const flameGrad = ctx.createRadialGradient(fx, fy, 3, fx, fy, flameLen);
-                flameGrad.addColorStop(0, 'rgba(255, 220, 80, 0.8)');
-                flameGrad.addColorStop(0.4, 'rgba(255, 120, 0, 0.5)');
-                flameGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
-                ctx.beginPath();
-                ctx.arc(fx, fy, flameLen, 0, Math.PI * 2);
-                ctx.fillStyle = flameGrad;
-                ctx.fill();
-            }
-
-            if (running && !paused && (Math.abs(vx) > 0.2 || Math.abs(vy) > 0.2)) {
-                const panjang = Math.min(80, Math.sqrt(vx * vx + vy * vy) * 2.5);
-                const angle = Math.atan2(vy, vx);
-                const ex = x + panjang * Math.cos(angle);
-                const ey = y + panjang * Math.sin(angle);
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                ctx.lineTo(ex, ey);
-                ctx.strokeStyle = '#00E5FF';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                const kepala = 10;
-                const a1 = angle + 2.2,
-                    a2 = angle - 2.2;
-                ctx.beginPath();
-                ctx.moveTo(ex, ey);
-                ctx.lineTo(ex - kepala * Math.cos(a1), ey - kepala * Math.sin(a1));
-                ctx.moveTo(ex, ey);
-                ctx.lineTo(ex - kepala * Math.cos(a2), ey - kepala * Math.sin(a2));
-                ctx.strokeStyle = '#00E5FF';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.fillStyle = '#00E5FF';
-                ctx.font = 'bold 12px monospace';
-                ctx.fillText(`v = ${Math.sqrt(vx * vx + vy * vy).toFixed(2)}`, x + 10, y - 16);
-            }
-
-            if (!running && trail.length === 0) {
-                ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.font = '20px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText('🎯 Atur parameter, lalu klik "LUNCURKAN"', W / 2, 35);
-                ctx.textAlign = 'left';
-            }
-
-            if (!running && trail.length > 10 && y >= GROUND_Y - 3) {
-                for (let i = 0; i < 12; i++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const dist = 8 + Math.random() * 25;
-                    const px = x + Math.cos(angle) * dist;
-                    const py = GROUND_Y - 5 + Math.sin(angle) * dist * 0.3;
-                    ctx.beginPath();
-                    ctx.arc(px, py, 1.5 + Math.random() * 3, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(200, 180, 150, ${0.1 + Math.random() * 0.25})`;
-                    ctx.fill();
-                }
-            }
-        }
-
-        // --- ANIMASI ---
-        function animate() {
-            if (running && !paused) {
-                updateFisika();
-                draw();
-                animId = requestAnimationFrame(animate);
-            } else if (running && paused) {
-                draw();
-                animId = requestAnimationFrame(animate);
-            } else {
-                stopAnimation();
-                draw();
-            }
-        }
-
-        // --- KLIK TITIK ---
-        function handleCanvasClick(event) {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const mouseX = (event.clientX - rect.left) * scaleX;
-            const mouseY = (event.clientY - rect.top) * scaleY;
-
-            let titikTerdekat = null;
-            let jarakTerdekat = Infinity;
-
-            for (let i = 0; i < titikList.length; i++) {
-                const p = titikList[i];
-                const dx = mouseX - p.x;
-                const dy = mouseY - p.y;
-                const jarak = Math.sqrt(dx * dx + dy * dy);
-                if (jarak < 30 && jarak < jarakTerdekat) {
-                    jarakTerdekat = jarak;
-                    titikTerdekat = p;
-                }
-            }
-
-            if (titikTerdekat) {
-                const vTotal = Math.sqrt(titikTerdekat.vx * titikTerdekat.vx + titikTerdekat.vy * titikTerdekat.vy);
-                tooltipJudul.textContent = titikTerdekat.label;
-                tooltipData.innerHTML = `
-                    <div>⏱️ Waktu: <strong>${titikTerdekat.waktu.toFixed(2)} s</strong></div>
-                    <div>🔵 Vx: <strong style="color:#4fc3f7;">${titikTerdekat.vx.toFixed(2)} m/s</strong></div>
-                    <div>🟠 Vy: <strong style="color:#ffb74d;">${titikTerdekat.vy.toFixed(2)} m/s</strong></div>
-                    <div>📈 |v|: <strong style="color:#81c784;">${vTotal.toFixed(2)} m/s</strong></div>
-                    <div>📌 Posisi: <strong>(${Math.round(titikTerdekat.x)}, ${Math.round(GROUND_Y - titikTerdekat.y)})</strong></div>
-                `;
-                const displayX = titikTerdekat.x / scaleX;
-                const displayY = titikTerdekat.y / scaleY;
-                tooltipInfo.style.left = displayX + 'px';
-                tooltipInfo.style.top = displayY + 'px';
-                tooltipInfo.style.display = 'block';
-            } else {
-                tooltipInfo.style.display = 'none';
-            }
-        }
-
-        canvas.addEventListener('click', handleCanvasClick);
-
-        // --- EVENT PREDIKSI ---
-        document.querySelectorAll('#jawabanPrediksi button').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('#jawabanPrediksi button').forEach(b => {
-                    b.style.background = 'white';
-                    b.style.color = '#2a5298';
-                });
-                this.style.background = '#2a5298';
-                this.style.color = 'white';
-                if (!running && trail.length > 0) {
-                    tampilkanHasilPrediksi();
-                }
-            });
         });
+    });
 
-        prediksiBaruBtn.addEventListener('click', setupPrediksi);
+    prediksiBaruBtn.addEventListener('click', setupPrediksi);
 
-        // --- EVENT ---
-        kecepatanAwalSlider.addEventListener('input', function() {
-            nilaiKecepatan.textContent = this.value;
-            if (!running) resetSimulasi();
-        });
-        sudutSlider.addEventListener('input', function() {
-            nilaiSudut.textContent = this.value;
-            infoSudut.textContent = this.value;
-            if (!running) resetSimulasi();
-        });
-        gravitasiSlider.addEventListener('input', function() {
-            nilaiGravitasi.textContent = parseFloat(this.value).toFixed(2);
-            if (!running) resetSimulasi();
-        });
-        mulaiBtn.addEventListener('click', mulaiSimulasi);
-        pauseBtn.addEventListener('click', togglePause);
-        resetBtn.addEventListener('click', function() {
-            resetSimulasi();
-            setupPrediksi();
-        });
-
-        // --- START ---
+    // --- EVENT SLIDER & BUTTON ---
+    kecepatanAwalSlider.addEventListener('input', function() {
+        nilaiKecepatan.textContent = this.value;
+        if (!running) resetSimulasi();
+    });
+    sudutSlider.addEventListener('input', function() {
+        nilaiSudut.textContent = this.value;
+        infoSudut.textContent = this.value;
+        if (!running) resetSimulasi();
+    });
+    gravitasiSlider.addEventListener('input', function() {
+        nilaiGravitasi.textContent = parseFloat(this.value).toFixed(2);
+        if (!running) resetSimulasi();
+    });
+    mulaiBtn.addEventListener('click', mulaiSimulasi);
+    pauseBtn.addEventListener('click', togglePause);
+    resetBtn.addEventListener('click', function() {
         resetSimulasi();
         setupPrediksi();
-        animate();
+    });
 
-        console.log('✅ Simulasi Meriam siap!');
+    // --- START ---
+    resetSimulasi();
+    setupPrediksi();
+    animate();
 
-    })(); // end IIFE
-</script>
+    console.log('✅ Simulasi Meriam siap!');
 
-</body>
-</html>
+})(); // end IIFE
