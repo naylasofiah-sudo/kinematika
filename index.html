@@ -3,72 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulasi Meriam - 5 Titik Analisis</title>
+    <title>Simulasi Meriam - Kinematika Partikel</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #0f0c29;
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             padding: 20px;
         }
         .container {
             background: rgba(255,255,255,0.95);
             border-radius: 20px;
-            padding: 30px;
+            padding: 25px;
             max-width: 1700px;
             width: 100%;
+            margin: 0 auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
         }
-        h1 { text-align: center; color: #1a1a2e; font-size: 34px; }
-        .subtitle { text-align: center; color: #666; margin-bottom: 15px; font-size: 16px; }
+        h1 { text-align: center; color: #1a1a2e; font-size: 30px; }
+        .subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 15px; }
+
+        /* LAYOUT: 2 KOLOM */
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .left-col {
+            flex: 2;
+            min-width: 600px;
+        }
+        .right-col {
+            flex: 1;
+            min-width: 300px;
+            max-width: 450px;
+        }
+
+        /* KONTROL */
         .controls {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 10px;
             background: #f0f2f5;
-            padding: 20px;
+            padding: 15px 20px;
             border-radius: 12px;
-            margin: 15px 0;
+            margin-bottom: 15px;
         }
         .control-group {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             flex: 1;
-            min-width: 180px;
+            min-width: 150px;
         }
-        .control-group label { font-weight: 600; font-size: 14px; min-width: 80px; }
-        .control-group input[type="range"] { flex: 1; accent-color: #e65100; height: 6px; }
-        .control-group span { min-width: 50px; font-weight: 700; color: #e65100; font-size: 16px; }
+        .control-group label { font-weight: 600; font-size: 13px; min-width: 60px; }
+        .control-group input[type="range"] { flex: 1; accent-color: #e65100; height: 5px; }
+        .control-group span { min-width: 40px; font-weight: 700; color: #e65100; font-size: 14px; }
+
         .action-buttons {
             display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-bottom: 15px;
+            gap: 10px;
             flex-wrap: wrap;
+            margin-bottom: 15px;
         }
         .btn {
-            padding: 14px 45px;
+            padding: 10px 25px;
             border: none;
-            border-radius: 10px;
-            font-size: 18px;
+            border-radius: 8px;
+            font-size: 15px;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .btn-primary {
-            background: linear-gradient(135deg, #e65100, #bf360c);
-            color: white;
-            box-shadow: 0 4px 15px rgba(230,81,0,0.4);
-        }
-        .btn-primary:hover { transform: scale(1.05); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-primary { background: linear-gradient(135deg, #e65100, #bf360c); color: white; }
+        .btn-primary:hover { transform: scale(1.03); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-secondary { background: #37474f; color: white; }
-        .btn-secondary:hover { transform: scale(1.05); }
+        .btn-secondary:hover { transform: scale(1.03); }
+        .btn-success { background: #2e7d32; color: white; }
+        .btn-success:hover { transform: scale(1.03); }
+        .btn-warning { background: #f57c00; color: white; }
+        .btn-warning:hover { transform: scale(1.03); }
+
+        /* CANVAS */
         .canvas-wrapper {
             background: #1a1a2e;
             border-radius: 12px;
@@ -83,86 +101,142 @@
             background: #1a1a2e;
             cursor: crosshair;
         }
+
+        /* PANEL KANAN: RUMUS & PENJELASAN */
+        .panel-box {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #2a5298;
+        }
+        .panel-box h3 {
+            font-size: 15px;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+        }
+        .panel-box p, .panel-box li {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.6;
+        }
+        .panel-box .rumus {
+            background: #1a1a2e;
+            color: #ffd740;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 6px 0;
+        }
+        .panel-box .catatan {
+            background: #fff3e0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #e65100;
+            border-left: 3px solid #e65100;
+        }
+
+        /* PERTANYAAN PREDIKSI */
+        .prediksi-box {
+            background: #e8f0fe;
+            border-radius: 12px;
+            padding: 16px;
+            border: 2px dashed #2a5298;
+        }
+        .prediksi-box h3 {
+            font-size: 15px;
+            color: #1a1a2e;
+        }
+        .prediksi-box .pertanyaan {
+            font-weight: 600;
+            color: #2a5298;
+            margin: 6px 0;
+        }
+        .prediksi-box .jawaban-prediksi {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+        .prediksi-box .jawaban-prediksi button {
+            padding: 6px 16px;
+            border: 2px solid #2a5298;
+            border-radius: 20px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .prediksi-box .jawaban-prediksi button:hover { background: #2a5298; color: white; }
+        .prediksi-box .hasil-prediksi {
+            font-size: 13px;
+            color: #333;
+            margin-top: 6px;
+            padding: 8px;
+            border-radius: 6px;
+            background: white;
+        }
+        .prediksi-box .hasil-prediksi.benar { border-left: 4px solid #2e7d32; }
+        .prediksi-box .hasil-prediksi.salah { border-left: 4px solid #c62828; }
+
+        /* DATA PANEL */
         .data-panel {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px 30px;
-            justify-content: center;
+            gap: 8px 20px;
             background: #263238;
-            padding: 15px 20px;
-            border-radius: 12px;
-            margin-top: 15px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-top: 10px;
             border: 1px solid #4a4a8a;
         }
         .data-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 16px;
+            gap: 6px;
+            font-size: 14px;
             color: #e0e0e0;
             font-family: 'Courier New', monospace;
         }
         .data-item .label { font-weight: 600; color: #90a4ae; }
-        .data-item .value {
-            font-weight: 700;
-            padding: 2px 12px;
-            border-radius: 6px;
-            background: rgba(255,255,255,0.08);
-            min-width: 80px;
-            text-align: center;
-        }
+        .data-item .value { font-weight: 700; padding: 0 8px; background: rgba(255,255,255,0.08); border-radius: 4px; }
         .data-item .value.vx { color: #4fc3f7; }
         .data-item .value.vy { color: #ffb74d; }
         .data-item .value.speed { color: #81c784; }
         .data-item .value.time { color: #ce93d8; }
-        .data-item .value.angle { color: #ff8a65; }
         .data-item .value.posisi { color: #ffffff; }
-        .info-panel {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px 30px;
-            justify-content: center;
-            background: #f0f2f5;
-            padding: 12px 20px;
-            border-radius: 12px;
-            margin-top: 15px;
-        }
-        .info-item { font-size: 14px; }
-        .info-item .label { font-weight: 600; }
+
+        /* STATUS */
         .status-siap { color: #2e7d32; font-weight: 700; }
         .status-terbang { color: #e65100; font-weight: 700; }
         .status-selesai { color: #c62828; font-weight: 700; }
-        .tooltip-info {
-            position: absolute;
-            background: rgba(0,0,0,0.88);
-            color: #fff;
-            padding: 12px 16px;
+        .status-pause { color: #f57c00; font-weight: 700; }
+
+        .info-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 25px;
+            background: #f0f2f5;
+            padding: 10px 16px;
             border-radius: 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            pointer-events: none;
-            border: 2px solid #ffab00;
-            box-shadow: 0 0 30px rgba(255, 170, 0, 0.3);
-            display: none;
-            min-width: 190px;
-            z-index: 10;
+            margin-top: 10px;
         }
-        .tooltip-info .title { color: #ffab00; font-weight: bold; margin-bottom: 4px; font-size: 14px; }
-        .tooltip-info .row { display: flex; justify-content: space-between; padding: 1px 0; font-size: 13px; }
-        .tooltip-info .row .label { color: #90a4ae; }
-        .tooltip-info .row .val { color: #fff; font-weight: bold; }
-        .tooltip-info .row .val.vx { color: #4fc3f7; }
-        .tooltip-info .row .val.vy { color: #ffb74d; }
-        .tooltip-info .row .val.speed { color: #81c784; }
-        @media (max-width: 700px) {
-            .container { padding: 15px; }
-            h1 { font-size: 24px; }
+        .info-item { font-size: 13px; }
+        .info-item .label { font-weight: 600; }
+
+        @media (max-width: 1000px) {
+            .left-col { min-width: unset; flex: 100%; }
+            .right-col { max-width: unset; flex: 100%; }
+        }
+        @media (max-width: 600px) {
+            .container { padding: 12px; }
             .controls { flex-direction: column; }
             .control-group { min-width: unset; }
-            .action-buttons { flex-direction: column; align-items: center; }
-            .btn { width: 100%; max-width: 250px; padding: 12px 20px; font-size: 16px; }
+            .action-buttons { justify-content: center; }
+            .btn { padding: 8px 16px; font-size: 13px; }
             .data-panel { flex-direction: column; align-items: center; }
-            .data-item { font-size: 14px; }
         }
     </style>
 </head>
@@ -170,65 +244,112 @@
 
 <div class="container">
     <h1>🎯 SIMULASI MERIAM - KINEMATIKA PARTIKEL</h1>
-    <p class="subtitle">5 Titik Analisis: Awal → 25% → 50% → 75% → Akhir</p>
+    <p class="subtitle">Gerak Parabola | Gabungan GLB (horizontal) dan GLBB (vertikal)</p>
 
-    <div class="controls">
-        <div class="control-group">
-            <label>Kecepatan Awal (v₀):</label>
-            <input type="range" id="kecepatanAwal" min="2" max="30" step="0.5" value="14">
-            <span id="nilaiKecepatan">14</span> m/s
+    <div class="main-layout">
+        <!-- KOLOM KIRI: SIMULASI -->
+        <div class="left-col">
+            <!-- Kontrol Slider -->
+            <div class="controls">
+                <div class="control-group">
+                    <label>v₀ (m/s):</label>
+                    <input type="range" id="kecepatanAwal" min="2" max="30" step="0.5" value="14">
+                    <span id="nilaiKecepatan">14</span>
+                </div>
+                <div class="control-group">
+                    <label>Sudut (°):</label>
+                    <input type="range" id="sudut" min="5" max="85" step="1" value="45">
+                    <span id="nilaiSudut">45</span>
+                </div>
+                <div class="control-group">
+                    <label>Gravitasi (g):</label>
+                    <input type="range" id="gravitasi" min="0.05" max="2.0" step="0.05" value="0.25">
+                    <span id="nilaiGravitasi">0.25</span>
+                </div>
+            </div>
+
+            <!-- Tombol Aksi -->
+            <div class="action-buttons">
+                <button id="mulaiBtn" class="btn btn-primary">🚀 LUNCURKAN</button>
+                <button id="pauseBtn" class="btn btn-warning" disabled>⏸️ Pause</button>
+                <button id="resetBtn" class="btn btn-secondary">🔄 Reset</button>
+            </div>
+
+            <!-- Canvas -->
+            <div class="canvas-wrapper">
+                <canvas id="simCanvas" width="1600" height="750"></canvas>
+            </div>
+
+            <!-- Data Panel -->
+            <div class="data-panel">
+                <div class="data-item"><span class="label">⏱️ Waktu:</span> <span class="value time" id="dataWaktu">0.00</span> s</div>
+                <div class="data-item"><span class="label">🔵 Vx:</span> <span class="value vx" id="dataVx">0.00</span> m/s</div>
+                <div class="data-item"><span class="label">🟠 Vy:</span> <span class="value vy" id="dataVy">0.00</span> m/s</div>
+                <div class="data-item"><span class="label">📈 |v|:</span> <span class="value speed" id="dataSpeed">0.00</span> m/s</div>
+                <div class="data-item"><span class="label">📌 Posisi:</span> <span class="value posisi" id="dataPos">(0, 0)</span> m</div>
+            </div>
+
+            <!-- Info Panel -->
+            <div class="info-panel">
+                <div class="info-item"><span class="label">🎯 Status:</span> <span id="statusText" class="status-siap">SIAP</span></div>
+                <div class="info-item"><span class="label">📐 Sudut:</span> <span id="infoSudut">45</span>°</div>
+                <div class="info-item"><span class="label">📦 Jarak:</span> <span id="infoJarak">0</span> m</div>
+                <div class="info-item"><span class="label">⬆️ Tinggi Maks:</span> <span id="infoTinggi">0</span> m</div>
+                <div class="info-item"><span class="label">⏱️ Waktu Tempuh:</span> <span id="infoWaktuTempuh">0.00</span> s</div>
+            </div>
         </div>
-        <div class="control-group">
-            <label>Sudut Meriam (°):</label>
-            <input type="range" id="sudut" min="5" max="85" step="1" value="45">
-            <span id="nilaiSudut">45</span>°
+
+        <!-- KOLOM KANAN: PENJELASAN & RUMUS -->
+        <div class="right-col">
+            <!-- Penjelasan Konsep -->
+            <div class="panel-box">
+                <h3>📖 Konsep Gerak Parabola</h3>
+                <p>Gerak meriam adalah <strong>gerak parabola</strong>, yaitu perpaduan:</p>
+                <ul style="margin-left:16px;">
+                    <li><strong>GLB</strong> (Gerak Lurus Beraturan) pada arah <strong>horizontal (x)</strong> → kecepatan tetap (Vx = konstan)</li>
+                    <li><strong>GLBB</strong> (Gerak Lurus Berubah Beraturan) pada arah <strong>vertikal (y)</strong> → dipengaruhi gravitasi (Vy berubah)</li>
+                </ul>
+                <p style="margin-top:6px;">Hambatan udara <strong>diabaikan</strong> (kondisi ideal).</p>
+            </div>
+
+            <!-- Rumus -->
+            <div class="panel-box">
+                <h3>📐 Rumus yang Digunakan</h3>
+                <div class="rumus">Vx = v₀ · cos(θ)</div>
+                <div class="rumus">Vy = v₀ · sin(θ) − g · t</div>
+                <div class="rumus">x = v₀ · cos(θ) · t</div>
+                <div class="rumus">y = v₀ · sin(θ) · t − ½ · g · t²</div>
+                <div style="font-size:12px;color:#666;margin-top:6px;">
+                    v₀ = kecepatan awal, θ = sudut, g = gravitasi, t = waktu
+                </div>
+                <div class="catatan">
+                    ⚠️ <strong>Catatan:</strong> Nilai gravitasi di simulasi ini <strong>bukan</strong> gravitasi Bumi (9,8 m/s²).<br>
+                    Nilai 0,25 m/s² digunakan agar <strong>lintasan lebih mudah diamati</strong> dalam layar. 
+                    Anda bisa mengubahnya dengan slider.
+                </div>
+            </div>
+
+            <!-- Pertanyaan Prediksi -->
+            <div class="prediksi-box">
+                <h3>🧠 Prediksi Sebelum Simulasi</h3>
+                <p class="pertanyaan" id="pertanyaanPrediksi">
+                    Jika sudut meriam dinaikkan dari 30° menjadi 45° (dengan v₀ tetap), bagaimana jarak horizontalnya?
+                </p>
+                <div class="jawaban-prediksi" id="jawabanPrediksi">
+                    <button data-jawaban="bertambah">Bertambah</button>
+                    <button data-jawaban="berkurang">Berkurang</button>
+                    <button data-jawaban="tetap">Tetap</button>
+                </div>
+                <div id="hasilPrediksi" class="hasil-prediksi" style="display:none;"></div>
+                <button id="prediksiBaruBtn" class="btn btn-secondary" style="margin-top:8px;padding:6px 16px;font-size:12px;">🔄 Pertanyaan Baru</button>
+            </div>
         </div>
-        <div class="control-group">
-            <label>Gravitasi (g):</label>
-            <input type="range" id="gravitasi" min="0.05" max="1.5" step="0.05" value="0.25">
-            <span id="nilaiGravitasi">0.25</span> m/s²
-        </div>
-    </div>
-
-    <div class="action-buttons">
-        <button id="mulaiBtn" class="btn btn-primary">🚀 LUNCURKAN MERIAM</button>
-        <button id="resetBtn" class="btn btn-secondary">🔄 Reset</button>
-    </div>
-
-    <div class="canvas-wrapper" id="canvasWrapper">
-        <canvas id="simCanvas" width="1600" height="850"></canvas>
-        <div id="tooltip" class="tooltip-info">
-            <div class="title">📍 DATA TITIK</div>
-            <div class="row"><span class="label">🏷️ Nama</span> <span class="val" id="ttLabel" style="color:#ffab00;">-</span></div>
-            <div class="row"><span class="label">⏱️ Waktu</span> <span class="val" id="ttWaktu">0.00 s</span></div>
-            <div class="row"><span class="label">📌 Posisi</span> <span class="val" id="ttPosisi">(0, 0) m</span></div>
-            <div class="row"><span class="label">🔵 Vx</span> <span class="val vx" id="ttVx">0.00 m/s</span></div>
-            <div class="row"><span class="label">🟠 Vy</span> <span class="val vy" id="ttVy">0.00 m/s</span></div>
-            <div class="row"><span class="label">📈 |v|</span> <span class="val speed" id="ttSpeed">0.00 m/s</span></div>
-        </div>
-    </div>
-
-    <div class="data-panel">
-        <div class="data-item"><span class="label">🎯 Sudut:</span> <span class="value angle" id="dataSudut">45°</span></div>
-        <div class="data-item"><span class="label">⏱️ Waktu:</span> <span class="value time" id="dataWaktu">0.00</span> s</div>
-        <div class="data-item"><span class="label">🔵 Vx:</span> <span class="value vx" id="dataVx">0.00</span> m/s</div>
-        <div class="data-item"><span class="label">🟠 Vy:</span> <span class="value vy" id="dataVy">0.00</span> m/s</div>
-        <div class="data-item"><span class="label">📈 Kecepatan:</span> <span class="value speed" id="dataSpeed">0.00</span> m/s</div>
-        <div class="data-item"><span class="label">📌 Posisi:</span> <span class="value posisi" id="dataPos" style="color:#fff;">(0, 0)</span> m</div>
-    </div>
-
-    <div class="info-panel">
-        <div class="info-item"><span class="label">🎯 Status:</span> <span id="statusText" class="status-siap">SIAP</span></div>
-        <div class="info-item"><span class="label">📐 Sudut Meriam:</span> <span id="infoSudut">45</span>°</div>
-        <div class="info-item"><span class="label">📦 Jarak Tempuh:</span> <span id="infoJarak">0</span> m</div>
-        <div class="info-item"><span class="label">⬆️ Tinggi Maks:</span> <span id="infoTinggi">0</span> m</div>
     </div>
 </div>
 
 <script>
     // ================================================================
-    // SIMULASI MERIAM - 5 TITIK (PASTI MUNCUL)
-    // Strategi: ambil titik berdasarkan persentase jarak horizontal
+    // SIMULASI MERIAM - VERSI FINAL DENGAN PENJELASAN KONSEP
     // ================================================================
 
     (function() {
@@ -239,14 +360,6 @@
         const ctx = canvas.getContext('2d');
         const W = canvas.width;
         const H = canvas.height;
-        const wrapper = document.getElementById('canvasWrapper');
-        const tooltip = document.getElementById('tooltip');
-        const ttLabel = document.getElementById('ttLabel');
-        const ttWaktu = document.getElementById('ttWaktu');
-        const ttPosisi = document.getElementById('ttPosisi');
-        const ttVx = document.getElementById('ttVx');
-        const ttVy = document.getElementById('ttVy');
-        const ttSpeed = document.getElementById('ttSpeed');
 
         // --- KONTROL ---
         const kecepatanAwalSlider = document.getElementById('kecepatanAwal');
@@ -256,6 +369,7 @@
         const gravitasiSlider = document.getElementById('gravitasi');
         const nilaiGravitasi = document.getElementById('nilaiGravitasi');
         const mulaiBtn = document.getElementById('mulaiBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
         const resetBtn = document.getElementById('resetBtn');
 
         // --- INFO ---
@@ -263,18 +377,24 @@
         const infoSudut = document.getElementById('infoSudut');
         const infoJarak = document.getElementById('infoJarak');
         const infoTinggi = document.getElementById('infoTinggi');
-        const dataSudut = document.getElementById('dataSudut');
+        const infoWaktuTempuh = document.getElementById('infoWaktuTempuh');
         const dataWaktu = document.getElementById('dataWaktu');
         const dataVx = document.getElementById('dataVx');
         const dataVy = document.getElementById('dataVy');
         const dataSpeed = document.getElementById('dataSpeed');
         const dataPos = document.getElementById('dataPos');
 
+        // --- PREDIKSI ---
+        const pertanyaanEl = document.getElementById('pertanyaanPrediksi');
+        const jawabanPrediksi = document.getElementById('jawabanPrediksi');
+        const hasilPrediksi = document.getElementById('hasilPrediksi');
+        const prediksiBaruBtn = document.getElementById('prediksiBaruBtn');
+
         // --- KONSTANTA ---
-        const GROUND_Y = 700;
-        const START_X = 220;
+        const GROUND_Y = 650;
+        const START_X = 200;
         const START_Y = GROUND_Y;
-        const MERIAM_X = 180;
+        const MERIAM_X = 160;
         const MERIAM_Y = GROUND_Y - 10;
         const LARAS_PANJANG = 70;
 
@@ -283,12 +403,15 @@
         let x = START_X, y = START_Y, vx = 0, vy = 0, waktu = 0;
         let trail = [];
         let running = false;
+        let paused = false;
         let animId = null;
-        let jarakTempuh = 0, tinggiMaks = 0, posisiAwalX = START_X;
-        let tooltipVisible = false, selectedPointIndex = -1;
-
-        // --- 5 TITIK (akan diisi dari trail) ---
+        let jarakTempuh = 0, tinggiMaks = 0, waktuTempuh = 0;
+        let posisiAwalX = START_X;
+        let frameCounter = 0;
         let titikList = [];
+
+        // --- PREDIKSI STATE ---
+        let prediksiSelesai = false;
 
         // --- KONVERSI ---
         function derajatKeRadian(deg) { return deg * Math.PI / 180; }
@@ -303,71 +426,26 @@
             dataPos.textContent = `(${Math.round(x)}, ${Math.round(GROUND_Y - y)})`;
         }
 
-        // --- UPDATE TOOLTIP ---
-        function updateTooltip(idx) {
-            if (idx < 0 || idx >= titikList.length) return;
-            const p = titikList[idx];
-            const kecepatan = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-            ttLabel.textContent = p.label;
-            ttWaktu.textContent = p.waktu.toFixed(2) + ' s';
-            ttPosisi.textContent = `(${Math.round(p.x)}, ${Math.round(GROUND_Y - p.y)}) m`;
-            ttVx.textContent = p.vx.toFixed(2) + ' m/s';
-            ttVy.textContent = p.vy.toFixed(2) + ' m/s';
-            ttSpeed.textContent = kecepatan.toFixed(2) + ' m/s';
-        }
-
-        // --- CARI TITIK TERDEKAT ---
-        function cariTitikTerdekat(mx, my) {
-            if (titikList.length === 0) return -1;
-            let minDist = Infinity, idx = -1;
-            for (let i = 0; i < titikList.length; i++) {
-                const dx = titikList[i].x - mx, dy = titikList[i].y - my;
-                const dist = dx * dx + dy * dy;
-                if (dist < minDist) { minDist = dist; idx = i; }
-            }
-            return (minDist < 2500) ? idx : -1;
-        }
-
-        // --- EKSTRAK 5 TITIK DARI TRAIL ---
+        // --- EKSTRAK 5 TITIK ---
         function ekstrakTitikDariTrail() {
             if (trail.length < 2) return;
-
             const first = trail[0];
             const last = trail[trail.length - 1];
             const jarakHorizontal = last.x - first.x;
-
-            // Titik-titik berdasarkan persentase jarak horizontal
             const persentase = [0, 0.25, 0.5, 0.75, 1.0];
             const label = ['Awal', '25%', '50% (Puncak)', '75%', 'Akhir'];
             const warna = ['#FF6B6B', '#4ECDC4', '#FFD93D', '#6BCB77', '#4D96FF'];
-
             titikList = [];
-
             for (let i = 0; i < persentase.length; i++) {
                 const targetX = first.x + jarakHorizontal * persentase[i];
-                // Cari titik di trail yang paling dekat dengan targetX
-                let closestIdx = 0;
-                let minDiff = Infinity;
+                let closestIdx = 0, minDiff = Infinity;
                 for (let j = 0; j < trail.length; j++) {
                     const diff = Math.abs(trail[j].x - targetX);
-                    if (diff < minDiff) {
-                        minDiff = diff;
-                        closestIdx = j;
-                    }
+                    if (diff < minDiff) { minDiff = diff; closestIdx = j; }
                 }
                 const p = trail[closestIdx];
-                titikList.push({
-                    x: p.x,
-                    y: p.y,
-                    vx: p.vx,
-                    vy: p.vy,
-                    waktu: p.waktu,
-                    label: label[i],
-                    warna: warna[i]
-                });
+                titikList.push({ x: p.x, y: p.y, vx: p.vx, vy: p.vy, waktu: p.waktu, label: label[i], warna: warna[i] });
             }
-
-            // Update tinggi maks dari titik puncak (index 2)
             if (titikList.length >= 3) {
                 const puncak = titikList[2];
                 tinggiMaks = Math.round(GROUND_Y - puncak.y);
@@ -384,60 +462,77 @@
             nilaiSudut.textContent = sudut;
             nilaiGravitasi.textContent = g.toFixed(2);
             infoSudut.textContent = sudut;
-            dataSudut.textContent = sudut + '°';
 
             const rad = derajatKeRadian(sudut);
             vx = v0 * Math.cos(rad);
             vy = -v0 * Math.sin(rad);
             x = START_X; y = START_Y;
             posisiAwalX = START_X;
-            waktu = 0;
-            trail = [];
-            titikList = [];
+            waktu = 0; waktuTempuh = 0;
+            trail = []; titikList = [];
             jarakTempuh = 0; tinggiMaks = 0;
-            running = false;
-            tooltipVisible = false; selectedPointIndex = -1;
-            tooltip.style.display = 'none';
-
+            running = false; paused = false;
+            frameCounter = 0;
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = '⏸️ Pause';
             mulaiBtn.disabled = false;
-            mulaiBtn.textContent = '🚀 LUNCURKAN MERIAM';
+            mulaiBtn.textContent = '🚀 LUNCURKAN';
             statusText.textContent = 'SIAP';
             statusText.className = 'status-siap';
             infoJarak.textContent = '0';
             infoTinggi.textContent = '0';
-
+            infoWaktuTempuh.textContent = '0.00';
+            prediksiSelesai = false;
+            hasilPrediksi.style.display = 'none';
+            document.querySelectorAll('#jawabanPrediksi button').forEach(b => b.style.opacity = '1');
             updateDataPanel();
             draw();
         }
 
         // --- MULAI ---
         function mulaiSimulasi() {
-            if (running) return;
+            if (running && !paused) return;
+            if (paused) {
+                paused = false;
+                pauseBtn.textContent = '⏸️ Pause';
+                statusText.textContent = 'TERBANG 🚀';
+                statusText.className = 'status-terbang';
+                return;
+            }
             const rad = derajatKeRadian(sudut);
             vx = v0 * Math.cos(rad);
             vy = -v0 * Math.sin(rad);
             x = START_X; y = START_Y;
             posisiAwalX = START_X;
             waktu = 0;
-            trail = [];
-            titikList = [];
+            trail = []; titikList = [];
             jarakTempuh = 0; tinggiMaks = 0;
-            running = true;
-            tooltipVisible = false; selectedPointIndex = -1;
-            tooltip.style.display = 'none';
-
-            mulaiBtn.disabled = true;
-            mulaiBtn.textContent = '⏳ MERIAM TERBANG...';
+            running = true; paused = false;
+            frameCounter = 0;
+            pauseBtn.disabled = false;
+            pauseBtn.textContent = '⏸️ Pause';
+            mulaiBtn.textContent = '⏳ BERJALAN...';
             statusText.textContent = 'TERBANG 🚀';
             statusText.className = 'status-terbang';
+            prediksiSelesai = false;
+            hasilPrediksi.style.display = 'none';
+            document.querySelectorAll('#jawabanPrediksi button').forEach(b => b.style.opacity = '1');
             updateDataPanel();
+        }
+
+        // --- PAUSE ---
+        function togglePause() {
+            if (!running) return;
+            paused = !paused;
+            pauseBtn.textContent = paused ? '▶️ Lanjut' : '⏸️ Pause';
+            statusText.textContent = paused ? '⏸️ PAUSE' : 'TERBANG 🚀';
+            statusText.className = paused ? 'status-pause' : 'status-terbang';
         }
 
         // --- FISIKA ---
         function updateFisika() {
-            if (!running) return;
+            if (!running || paused) return;
 
-            // Simpan trail dengan data lengkap
             trail.push({ x, y, vx, vy, waktu });
             if (trail.length > 600) trail.shift();
 
@@ -449,25 +544,26 @@
             if (x - posisiAwalX > jarakTempuh) jarakTempuh = x - posisiAwalX;
             if ((GROUND_Y - y) > tinggiMaks) tinggiMaks = GROUND_Y - y;
 
-            // --- TUMBUKAN TANAH (LANGSUNG BERHENTI) ---
+            // TUMBUKAN TANAH
             if (y >= GROUND_Y) {
                 y = GROUND_Y;
                 vx = 0; vy = 0;
                 running = false;
-
-                // Simpan titik akhir
+                waktuTempuh = waktu;
                 trail.push({ x, y, vx, vy, waktu });
                 if (trail.length > 600) trail.shift();
-
-                // Ekstrak 5 titik dari trail
                 ekstrakTitikDariTrail();
-
                 mulaiBtn.disabled = false;
                 mulaiBtn.textContent = '🚀 LUNCURKAN LAGI';
+                pauseBtn.disabled = true;
+                pauseBtn.textContent = '⏸️ Pause';
                 statusText.textContent = 'SELESAI 🎯';
                 statusText.className = 'status-selesai';
                 infoJarak.textContent = Math.round(jarakTempuh);
                 infoTinggi.textContent = Math.round(tinggiMaks);
+                infoWaktuTempuh.textContent = waktuTempuh.toFixed(2);
+                // Tampilkan hasil prediksi
+                tampilkanHasilPrediksi();
             }
 
             // Batas kanvas
@@ -482,13 +578,44 @@
                 ekstrakTitikDariTrail();
                 mulaiBtn.disabled = false;
                 mulaiBtn.textContent = '🚀 LUNCURKAN LAGI';
+                pauseBtn.disabled = true;
+                pauseBtn.textContent = '⏸️ Pause';
                 statusText.textContent = 'SELESAI 🎯';
                 statusText.className = 'status-selesai';
                 infoJarak.textContent = Math.round(jarakTempuh);
                 infoTinggi.textContent = Math.round(tinggiMaks);
+                infoWaktuTempuh.textContent = waktuTempuh.toFixed(2);
+                tampilkanHasilPrediksi();
             }
 
             updateDataPanel();
+        }
+
+        // --- TAMPILKAN HASIL PREDIKSI ---
+        function tampilkanHasilPrediksi() {
+            if (prediksiSelesai) return;
+            prediksiSelesai = true;
+            // Cek apakah ada jawaban yang dipilih
+            const jawabanDipilih = document.querySelector('#jawabanPrediksi button[style*="background"]');
+            if (!jawabanDipilih) {
+                hasilPrediksi.style.display = 'block';
+                hasilPrediksi.className = 'hasil-prediksi';
+                hasilPrediksi.innerHTML = '⚠️ Silakan pilih prediksi Anda terlebih dahulu!';
+                return;
+            }
+            const jawaban = jawabanDipilih.dataset.jawaban;
+            // Logika sederhana: sudut 45° menghasilkan jarak maksimal untuk v₀ tetap
+            const sudutSekarang = parseInt(sudutSlider.value);
+            let benar = false;
+            if (sudutSekarang <= 45 && jawaban === 'bertambah') benar = true;
+            else if (sudutSekarang > 45 && jawaban === 'berkurang') benar = true;
+            else if (sudutSekarang === 45 && jawaban === 'tetap') benar = true;
+
+            hasilPrediksi.style.display = 'block';
+            hasilPrediksi.className = 'hasil-prediksi ' + (benar ? 'benar' : 'salah');
+            hasilPrediksi.innerHTML = benar ?
+                '✅ <strong>Benar!</strong> ' + (sudutSekarang <= 45 ? 'Sudut yang lebih besar menghasilkan jarak yang lebih jauh (hingga 45°).' : 'Sudut yang lebih besar dari 45° mengurangi jarak horizontal.') :
+                '❌ <strong>Kurang tepat.</strong> ' + (sudutSekarang <= 45 ? 'Coba ingat: sudut yang lebih besar (hingga 45°) menghasilkan jarak yang lebih jauh.' : 'Sudut yang lebih besar dari 45° justru mengurangi jarak horizontal.');
         }
 
         // --- GAMBAR MERIAM ---
@@ -509,7 +636,6 @@
             ctx.strokeRect(cx - 30, cy - 18, 60, 28);
             ctx.fillStyle = '#5D4037';
             ctx.fillRect(cx - 10, cy - 12, 20, 16);
-
             ctx.save();
             ctx.translate(cx + 30, cy - 4);
             ctx.rotate(rad);
@@ -530,7 +656,6 @@
             ctx.arc(LARAS_PANJANG + 2, 0, 6, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
-
             ctx.fillStyle = 'rgba(255,255,255,0.9)';
             ctx.font = 'bold 18px monospace';
             ctx.fillText(`Sudut: ${angle}°`, cx - 30, cy - 45);
@@ -562,10 +687,6 @@
             ctx.fillStyle = 'rgba(255,255,255,0.3)';
             ctx.font = '16px sans-serif';
             ctx.fillText('Tanah', W - 90, GROUND_Y + 40);
-            ctx.fillStyle = 'rgba(255,255,255,0.1)';
-            ctx.font = '16px sans-serif';
-            ctx.fillText('x', W - 25, H - 8);
-            ctx.fillText('y', 8, 30);
 
             // Meriam
             drawMeriam(sudut);
@@ -577,66 +698,52 @@
                 for (let i = 1; i < trail.length; i++) {
                     ctx.lineTo(trail[i].x, trail[i].y);
                 }
-                ctx.strokeStyle = 'rgba(255, 220, 100, 0.2)';
-                ctx.lineWidth = 1.5;
-                ctx.setLineDash([4, 6]);
+                ctx.strokeStyle = 'rgba(255, 220, 100, 0.25)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 8]);
                 ctx.stroke();
                 ctx.setLineDash([]);
+                // Animasi titik bergerak
+                for (let i = 0; i < trail.length; i++) {
+                    const alpha = i / trail.length;
+                    ctx.beginPath();
+                    ctx.arc(trail[i].x, trail[i].y, 2 + alpha * 3, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 200, 80, ${0.3 + alpha * 0.5})`;
+                    ctx.fill();
+                }
             }
 
-            // ============================================================
-            // GAMBAR 5 TITIK DARI titikList
-            // ============================================================
+            // 5 titik
             for (let i = 0; i < titikList.length; i++) {
                 const p = titikList[i];
-                const radius = 13;
+                const radius = 12;
                 const color = p.warna || '#FF6B6B';
-
-                // Lingkaran titik
                 ctx.shadowColor = color;
-                ctx.shadowBlur = 25;
+                ctx.shadowBlur = 20;
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
                 ctx.fillStyle = color;
                 ctx.fill();
                 ctx.shadowBlur = 0;
-
-                // Outline putih
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 2;
                 ctx.stroke();
-
                 // Label
                 const labelText = p.label;
-                ctx.font = 'bold 13px sans-serif';
+                ctx.font = 'bold 12px sans-serif';
                 const metrics = ctx.measureText(labelText);
-                const tw = metrics.width + 14;
-                const th = 26;
-
-                // Posisi label: di atas untuk 3 titik pertama, di bawah untuk 2 titik terakhir
-                let lx = p.x;
-                let ly;
-                if (i < 3) {
-                    ly = p.y - 30;
-                } else {
-                    ly = p.y + 30;
-                }
-                // Hindari label keluar canvas
+                const tw = metrics.width + 12;
+                const th = 22;
+                let lx = p.x, ly = (i < 3) ? p.y - 28 : p.y + 28;
                 if (lx - tw/2 < 0) lx = tw/2 + 10;
                 if (lx + tw/2 > W) lx = W - tw/2 - 10;
-
-                // Background label
                 ctx.fillStyle = 'rgba(0,0,0,0.65)';
                 ctx.fillRect(lx - tw/2, ly - th/2, tw, th);
-
-                // Border label
-                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
                 ctx.lineWidth = 1;
                 ctx.strokeRect(lx - tw/2, ly - th/2, tw, th);
-
-                // Teks label
                 ctx.fillStyle = '#ffffff';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
@@ -645,27 +752,15 @@
                 ctx.textAlign = 'left';
             }
 
-            // Highlight titik yang dipilih
-            if (selectedPointIndex >= 0 && selectedPointIndex < titikList.length) {
-                const p = titikList[selectedPointIndex];
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 20, 0, Math.PI * 2);
-                ctx.strokeStyle = '#FFD740';
-                ctx.lineWidth = 3;
-                ctx.setLineDash([4, 4]);
-                ctx.stroke();
-                ctx.setLineDash([]);
-            }
-
             // Bola
-            const radius = 26;
-            const grad = ctx.createRadialGradient(x - 8, y - 8, 6, x, y, radius + 10);
+            const radius = 24;
+            const grad = ctx.createRadialGradient(x - 7, y - 7, 5, x, y, radius + 10);
             grad.addColorStop(0, '#FFD740');
             grad.addColorStop(0.3, '#FFAB00');
             grad.addColorStop(0.7, '#E65100');
             grad.addColorStop(1, '#BF360C');
             ctx.shadowColor = 'rgba(255, 100, 0, 0.7)';
-            ctx.shadowBlur = 40;
+            ctx.shadowBlur = 35;
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
             ctx.fillStyle = grad;
@@ -677,17 +772,17 @@
             ctx.lineWidth = 2;
             ctx.stroke();
             ctx.beginPath();
-            ctx.arc(x - 8, y - 10, 9, 0, Math.PI * 2);
+            ctx.arc(x - 7, y - 9, 8, 0, Math.PI * 2);
             ctx.fillStyle = 'rgba(255,255,255,0.2)';
             ctx.fill();
 
             // Api
-            if (running) {
-                const flameLen = 35 + Math.random() * 30;
+            if (running && !paused) {
+                const flameLen = 30 + Math.random() * 25;
                 const angle = Math.atan2(vy, vx);
                 const fx = x - flameLen * Math.cos(angle);
                 const fy = y - flameLen * Math.sin(angle);
-                const flameGrad = ctx.createRadialGradient(fx, fy, 5, fx, fy, flameLen);
+                const flameGrad = ctx.createRadialGradient(fx, fy, 4, fx, fy, flameLen);
                 flameGrad.addColorStop(0, 'rgba(255, 220, 80, 0.95)');
                 flameGrad.addColorStop(0.4, 'rgba(255, 120, 0, 0.7)');
                 flameGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
@@ -698,8 +793,8 @@
             }
 
             // Vektor kecepatan
-            if (running && (Math.abs(vx) > 0.2 || Math.abs(vy) > 0.2)) {
-                const panjang = Math.min(110, Math.sqrt(vx * vx + vy * vy) * 3.2);
+            if (running && !paused && (Math.abs(vx) > 0.2 || Math.abs(vy) > 0.2)) {
+                const panjang = Math.min(100, Math.sqrt(vx * vx + vy * vy) * 3);
                 const angle = Math.atan2(vy, vx);
                 const ex = x + panjang * Math.cos(angle);
                 const ey = y + panjang * Math.sin(angle);
@@ -707,9 +802,9 @@
                 ctx.moveTo(x, y);
                 ctx.lineTo(ex, ey);
                 ctx.strokeStyle = '#00E5FF';
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 2.5;
                 ctx.stroke();
-                const kepala = 15;
+                const kepala = 12;
                 const a1 = angle + 2.2, a2 = angle - 2.2;
                 ctx.beginPath();
                 ctx.moveTo(ex, ey);
@@ -717,31 +812,31 @@
                 ctx.moveTo(ex, ey);
                 ctx.lineTo(ex - kepala * Math.cos(a2), ey - kepala * Math.sin(a2));
                 ctx.strokeStyle = '#00E5FF';
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 2.5;
                 ctx.stroke();
                 ctx.fillStyle = '#00E5FF';
-                ctx.font = 'bold 14px monospace';
-                ctx.fillText(`v = ${Math.sqrt(vx*vx + vy*vy).toFixed(2)} m/s`, x + 15, y - 20);
+                ctx.font = 'bold 13px monospace';
+                ctx.fillText(`v = ${Math.sqrt(vx*vx + vy*vy).toFixed(2)} m/s`, x + 12, y - 18);
             }
 
-            // Panduan
+            // Informasi tambahan di canvas
             if (!running && trail.length === 0) {
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                ctx.font = '24px sans-serif';
+                ctx.font = '22px sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText('🎯 Atur sudut dan kecepatan, lalu klik "LUNCURKAN MERIAM"', W / 2, 65);
+                ctx.fillText('🎯 Atur parameter, lalu klik "LUNCURKAN"', W / 2, 40);
                 ctx.textAlign = 'left';
             }
 
             // Efek debu
             if (!running && trail.length > 10 && y >= GROUND_Y - 3) {
-                for (let i = 0; i < 25; i++) {
+                for (let i = 0; i < 20; i++) {
                     const angle = Math.random() * Math.PI * 2;
-                    const dist = 10 + Math.random() * 35;
+                    const dist = 10 + Math.random() * 30;
                     const px = x + Math.cos(angle) * dist;
-                    const py = GROUND_Y - 8 + Math.sin(angle) * dist * 0.3;
+                    const py = GROUND_Y - 6 + Math.sin(angle) * dist * 0.3;
                     ctx.beginPath();
-                    ctx.arc(px, py, 2 + Math.random() * 5, 0, Math.PI * 2);
+                    ctx.arc(px, py, 2 + Math.random() * 4, 0, Math.PI * 2);
                     ctx.fillStyle = `rgba(200, 180, 150, ${0.15 + Math.random() * 0.3})`;
                     ctx.fill();
                 }
@@ -750,10 +845,52 @@
 
         // --- ANIMASI ---
         function animate() {
-            if (running) updateFisika();
+            if (running && !paused) updateFisika();
             draw();
             animId = requestAnimationFrame(animate);
         }
+
+        // --- PREDIKSI ---
+        function setupPrediksi() {
+            const pertanyaans = [
+                { q: 'Jika sudut meriam dinaikkan dari 30° menjadi 45° (dengan v₀ tetap), bagaimana jarak horizontalnya?', jawaban: 'bertambah' },
+                { q: 'Jika sudut meriam dinaikkan dari 45° menjadi 60° (dengan v₀ tetap), bagaimana jarak horizontalnya?', jawaban: 'berkurang' },
+                { q: 'Jika kecepatan awal diperbesar (dengan sudut tetap), bagaimana tinggi maksimumnya?', jawaban: 'bertambah' },
+                { q: 'Jika gravitasi diperbesar (dengan v₀ dan sudut tetap), bagaimana jarak horizontalnya?', jawaban: 'berkurang' }
+            ];
+            const pilihan = ['bertambah', 'berkurang', 'tetap'];
+            const idx = Math.floor(Math.random() * pertanyaans.length);
+            const soal = pertanyaans[idx];
+            pertanyaanEl.textContent = soal.q;
+            // Reset jawaban
+            document.querySelectorAll('#jawabanPrediksi button').forEach(b => {
+                b.style.background = 'white';
+                b.style.color = '#2a5298';
+            });
+            hasilPrediksi.style.display = 'none';
+            prediksiSelesai = false;
+            // Simpan jawaban benar
+            prediksiBaruBtn.dataset.jawabanBenar = soal.jawaban;
+        }
+
+        // --- EVENT PREDIKSI ---
+        document.querySelectorAll('#jawabanPrediksi button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Highlight pilihan
+                document.querySelectorAll('#jawabanPrediksi button').forEach(b => {
+                    b.style.background = 'white';
+                    b.style.color = '#2a5298';
+                });
+                this.style.background = '#2a5298';
+                this.style.color = 'white';
+                // Jika simulasi sudah selesai, langsung tampilkan hasil
+                if (!running && trail.length > 0) {
+                    tampilkanHasilPrediksi();
+                }
+            });
+        });
+
+        prediksiBaruBtn.addEventListener('click', setupPrediksi);
 
         // --- EVENT ---
         kecepatanAwalSlider.addEventListener('input', function() {
@@ -763,7 +900,6 @@
         sudutSlider.addEventListener('input', function() {
             nilaiSudut.textContent = this.value;
             infoSudut.textContent = this.value;
-            dataSudut.textContent = this.value + '°';
             if (!running) resetSimulasi();
         });
         gravitasiSlider.addEventListener('input', function() {
@@ -771,54 +907,19 @@
             if (!running) resetSimulasi();
         });
         mulaiBtn.addEventListener('click', mulaiSimulasi);
+        pauseBtn.addEventListener('click', togglePause);
         resetBtn.addEventListener('click', function() {
-            tooltip.style.display = 'none';
-            tooltipVisible = false;
-            selectedPointIndex = -1;
             resetSimulasi();
-        });
-
-        canvas.addEventListener('click', function(e) {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const mx = (e.clientX - rect.left) * scaleX;
-            const my = (e.clientY - rect.top) * scaleY;
-            const idx = cariTitikTerdekat(mx, my);
-            if (idx >= 0) {
-                selectedPointIndex = idx;
-                tooltipVisible = true;
-                updateTooltip(idx);
-                const p = titikList[idx];
-                const rect2 = canvas.getBoundingClientRect();
-                const sx = rect2.width / canvas.width;
-                const sy = rect2.height / canvas.height;
-                const tx = (p.x * sx) + rect2.left;
-                const ty = (p.y * sy) + rect2.top - 10;
-                tooltip.style.left = Math.max(10, Math.min(tx - 100, window.innerWidth - 220)) + 'px';
-                tooltip.style.top = Math.max(10, Math.min(ty - 100, window.innerHeight - 120)) + 'px';
-                tooltip.style.display = 'block';
-            } else {
-                tooltipVisible = false;
-                selectedPointIndex = -1;
-                tooltip.style.display = 'none';
-            }
-        });
-
-        document.addEventListener('click', function(e) {
-            if (!canvas.contains(e.target)) {
-                tooltip.style.display = 'none';
-                tooltipVisible = false;
-                selectedPointIndex = -1;
-            }
+            setupPrediksi();
         });
 
         // --- START ---
         resetSimulasi();
+        setupPrediksi();
         animate();
 
-        console.log('✅ 5 Titik Analisis: Awal, 25%, 50% (Puncak), 75%, Akhir');
-        console.log('📐 Klik pada titik untuk melihat data.');
+        console.log('✅ Simulasi Meriam siap!');
+        console.log('📐 Klik prediksi sebelum simulasi untuk belajar.');
 
     })(); // end IIFE
 </script>
