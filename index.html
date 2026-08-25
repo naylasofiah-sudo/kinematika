@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulasi Meriam - Kinematika Partikel (Sempurna)</title>
+    <title>Simulasi Meriam - Kinematika Partikel (Interaktif)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -45,7 +45,7 @@
         .btn-warning:hover { transform: scale(1.03); }
 
         .canvas-wrapper { background: #1a1a2e; border-radius: 12px; overflow: hidden; border: 3px solid #4a4a8a; position: relative; }
-        canvas { display: block; width: 100%; height: auto; background: #1a1a2e; cursor: crosshair; }
+        canvas { display: block; width: 100%; height: auto; background: #1a1a2e; cursor: pointer; }
 
         .panel-box { background: #f8f9fa; border-radius: 12px; padding: 16px; margin-bottom: 12px; border-left: 4px solid #2a5298; }
         .panel-box h3 { font-size: 15px; color: #1a1a2e; margin-bottom: 8px; }
@@ -82,6 +82,24 @@
         .info-item { font-size: 13px; }
         .info-item .label { font-weight: 600; }
 
+        /* Pop-up Info Titik */
+        #tooltipInfo {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            pointer-events: none;
+            display: none;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+            z-index: 100;
+        }
+        #tooltipInfo .judul { color: #FFD740; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 3px; }
+
         @media (max-width: 1000px) {
             .left-col { min-width: unset; flex: 100%; }
             .right-col { max-width: unset; flex: 100%; }
@@ -100,7 +118,7 @@
 
 <div class="container">
     <h1>🎯 SIMULASI MERIAM - KINEMATIKA PARTIKEL</h1>
-    <p class="subtitle">Gerak Parabola | Gabungan GLB (horizontal) dan GLBB (vertikal)</p>
+    <p class="subtitle">Klik titik-titik pada lintasan untuk menganalisis data secara detail!</p>
 
     <div class="main-layout">
         <!-- KOLOM KIRI: SIMULASI -->
@@ -132,8 +150,10 @@
             </div>
 
             <!-- Canvas -->
-            <div class="canvas-wrapper">
+            <div class="canvas-wrapper" id="canvasWrapper">
                 <canvas id="simCanvas" width="1600" height="750"></canvas>
+                <!-- Pop-up untuk analisis titik -->
+                <div id="tooltipInfo"></div>
             </div>
 
             <!-- Data Panel -->
@@ -157,7 +177,6 @@
 
         <!-- KOLOM KANAN: PENJELASAN & RUMUS -->
         <div class="right-col">
-            <!-- Penjelasan Konsep -->
             <div class="panel-box">
                 <h3>📖 Konsep Gerak Parabola</h3>
                 <p>Gerak meriam adalah <strong>gerak parabola</strong>, yaitu perpaduan:</p>
@@ -168,7 +187,6 @@
                 <p style="margin-top:6px;">Hambatan udara <strong>diabaikan</strong> (kondisi ideal).</p>
             </div>
 
-            <!-- Rumus -->
             <div class="panel-box">
                 <h3>📐 Rumus yang Digunakan</h3>
                 <div class="rumus">Vx = v₀ · cos(θ)</div>
@@ -185,7 +203,6 @@
                 </div>
             </div>
 
-            <!-- Pertanyaan Prediksi -->
             <div class="prediksi-box">
                 <h3>🧠 Prediksi Sebelum Simulasi</h3>
                 <p class="pertanyaan" id="pertanyaanPrediksi">
@@ -205,17 +222,19 @@
 
 <script>
     // ================================================================
-    // SIMULASI MERIAM - VERSI FINAL (KODE PENUH & SEMPURNA)
+    // SIMULASI MERIAM - VERSI INTERAKTIF (BISA KLIK TITIK)
     // ================================================================
 
     (function() {
         "use strict";
 
-        // --- ELEMEN CANVAS ---
+        // --- ELEMEN ---
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
         const W = canvas.width;
         const H = canvas.height;
+        const canvasWrapper = document.getElementById('canvasWrapper');
+        const tooltipInfo = document.getElementById('tooltipInfo');
 
         // --- KONTROL ---
         const kecepatanAwalSlider = document.getElementById('kecepatanAwal');
@@ -265,9 +284,7 @@
         let posisiAwalX = START_X;
         let frameCounter = 0;
         let titikList = [];
-
-        // --- PREDIKSI STATE ---
-        let prediksiSelesai = false;
+        let titikAktif = null; // Titik yang sedang diklik
 
         // --- KONVERSI ---
         function derajatKeRadian(deg) { return deg * Math.PI / 180; }
@@ -300,7 +317,13 @@
                     if (diff < minDiff) { minDiff = diff; closestIdx = j; }
                 }
                 const p = trail[closestIdx];
-                titikList.push({ x: p.x, y: p.y, vx: p.vx, vy: p.vy, waktu: p.waktu, label: label[i], warna: warna[i] });
+                titikList.push({
+                    x: p.x, y: p.y,
+                    vx: p.vx, vy: p.vy,
+                    waktu: p.waktu,
+                    label: label[i],
+                    warna: warna[i]
+                });
             }
             if (titikList.length >= 3) {
                 const puncak = titikList[2];
@@ -341,6 +364,8 @@
             prediksiSelesai = false;
             hasilPrediksi.style.display = 'none';
             document.querySelectorAll('#jawabanPrediksi button').forEach(b => b.style.opacity = '1');
+            titikAktif = null; // Reset titik yang diklik
+            tooltipInfo.style.display = 'none';
             updateDataPanel();
             draw();
         }
@@ -373,6 +398,8 @@
             prediksiSelesai = false;
             hasilPrediksi.style.display = 'none';
             document.querySelectorAll('#jawabanPrediksi button').forEach(b => b.style.opacity = '1');
+            titikAktif = null;
+            tooltipInfo.style.display = 'none';
             updateDataPanel();
         }
 
@@ -400,10 +427,8 @@
             if (x - posisiAwalX > jarakTempuh) jarakTempuh = x - posisiAwalX;
             if ((GROUND_Y - y) > tinggiMaks) tinggiMaks = GROUND_Y - y;
 
-            // TUMBUKAN TANAH
             if (y >= GROUND_Y) {
-                y = GROUND_Y;
-                vx = 0; vy = 0;
+                y = GROUND_Y; vx = 0; vy = 0;
                 running = false;
                 waktuTempuh = waktu;
                 trail.push({ x, y, vx, vy, waktu });
@@ -421,7 +446,6 @@
                 tampilkanHasilPrediksi();
             }
 
-            // Batas kanvas
             if (x > W - 30) { x = W - 30; vx = 0; vy = 0; running = false; ekstrakTitikDariTrail(); }
             if (x < 30) { x = 30; vx = 0; vy = 0; running = false; ekstrakTitikDariTrail(); }
             if (running && y < 30) { y = 30; vy = -vy * 0.1; }
@@ -450,7 +474,6 @@
         function tampilkanHasilPrediksi() {
             if (prediksiSelesai) return;
             prediksiSelesai = true;
-            // Cek apakah ada jawaban yang dipilih
             const jawabanDipilih = document.querySelector('#jawabanPrediksi button[style*="background"]');
             if (!jawabanDipilih) {
                 hasilPrediksi.style.display = 'block';
@@ -459,7 +482,6 @@
                 return;
             }
             const jawaban = jawabanDipilih.dataset.jawaban;
-            // Logika sederhana: sudut 45° menghasilkan jarak maksimal untuk v₀ tetap
             const sudutSekarang = parseInt(sudutSlider.value);
             let benar = false;
             if (sudutSekarang <= 45 && jawaban === 'bertambah') benar = true;
@@ -473,7 +495,7 @@
                 '❌ <strong>Kurang tepat.</strong> ' + (sudutSekarang <= 45 ? 'Coba ingat: sudut yang lebih besar (hingga 45°) menghasilkan jarak yang lebih jauh.' : 'Sudut yang lebih besar dari 45° justru mengurangi jarak horizontal.');
         }
 
-        // --- GAMBAR MERIAM (VERSI FINAL - SELURUH BAGIAN BERPUTAR) ---
+        // --- GAMBAR MERIAM (SELURUH BAGIAN BERPUTAR) ---
         function drawMeriam(angle) {
             const rad = derajatKeRadian(angle);
             const cx = MERIAM_X,
@@ -481,57 +503,47 @@
             ctx.shadowBlur = 0;
 
             ctx.save();
-            
-            // Pindahkan pusat koordinat ke titik pangkal laras (poros engsel)
             ctx.translate(cx, cy - 10); 
-            
-            // Putar seluruh meriam. Gunakan -rad karena Y canvas ke bawah.
             ctx.rotate(-rad);
 
-            // 1. RODA (di belakang body)
             ctx.fillStyle = '#3E2723';
             ctx.beginPath();
-            ctx.arc(-20, 20, 16, 0, Math.PI * 2); // Roda kiri
+            ctx.arc(-20, 20, 16, 0, Math.PI * 2);
             ctx.fill();
             ctx.beginPath();
-            ctx.arc(20, 20, 16, 0, Math.PI * 2);  // Roda kanan
+            ctx.arc(20, 20, 16, 0, Math.PI * 2);
             ctx.fill();
 
-            // 2. BODY (Kotak panjang horizontal sebagai badan meriam)
             ctx.fillStyle = '#4E342E';
-            ctx.fillRect(-25, -8, 50, 24); // Badan meriam
+            ctx.fillRect(-25, -8, 50, 24);
             ctx.strokeStyle = '#3E2723';
             ctx.lineWidth = 2;
             ctx.strokeRect(-25, -8, 50, 24);
 
-            // 3. LARAS (Menunjuk ke arah sumbu X positif)
             const panjangLaras = 60;
             ctx.fillStyle = '#5D4037';
-            ctx.fillRect(25, -6, panjangLaras, 12); // Laras memanjang ke kanan (karena sudah di-rotate)
+            ctx.fillRect(25, -6, panjangLaras, 12);
             ctx.strokeStyle = '#2C1A0E';
             ctx.lineWidth = 1.5;
             ctx.strokeRect(25, -6, panjangLaras, 12);
 
-            // 4. Ujung Moncong (kotak di ujung kanan laras)
             ctx.fillStyle = '#4E342E';
             ctx.fillRect(25 + panjangLaras, -10, 10, 20);
             ctx.strokeRect(25 + panjangLaras, -10, 10, 20);
 
-            // 5. Lubang Moncong
             ctx.fillStyle = '#2C1A0E';
             ctx.beginPath();
             ctx.arc(25 + panjangLaras + 5, 0, 5, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.restore(); // Kembalikan koordinat normal
+            ctx.restore();
 
-            // Tampilkan teks sudut (tidak ikut berputar)
             ctx.fillStyle = 'rgba(255,255,255,0.9)';
             ctx.font = 'bold 18px monospace';
             ctx.fillText(`Sudut: ${angle}°`, cx - 30, cy - 40);
         }
 
-        // --- GAMBAR ---
+        // --- GAMBAR SEMUA ---
         function draw() {
             ctx.clearRect(0, 0, W, H);
 
@@ -573,7 +585,6 @@
                 ctx.setLineDash([6, 8]);
                 ctx.stroke();
                 ctx.setLineDash([]);
-                // Animasi titik bergerak
                 for (let i = 0; i < trail.length; i++) {
                     const alpha = i / trail.length;
                     ctx.beginPath();
@@ -583,11 +594,22 @@
                 }
             }
 
-            // 5 titik
+            // 5 titik analisis (GAMBAR DENGAN EFEK BISA DIKLIK)
             for (let i = 0; i < titikList.length; i++) {
                 const p = titikList[i];
-                const radius = 12;
+                const radius = 14;
                 const color = p.warna || '#FF6B6B';
+                
+                // Jika titik ini sedang aktif (diklik), gambar lebih besar & menyala
+                if (titikAktif && titikAktif.label === p.label) {
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 30;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, radius + 5, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                    ctx.fill();
+                }
+
                 ctx.shadowColor = color;
                 ctx.shadowBlur = 20;
                 ctx.beginPath();
@@ -595,11 +617,14 @@
                 ctx.fillStyle = color;
                 ctx.fill();
                 ctx.shadowBlur = 0;
+                
+                // Lingkaran luar
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
                 ctx.strokeStyle = 'rgba(255,255,255,0.6)';
                 ctx.lineWidth = 2;
                 ctx.stroke();
+
                 // Label
                 const labelText = p.label;
                 ctx.font = 'bold 12px sans-serif';
@@ -689,7 +714,7 @@
                 ctx.fillText(`v = ${Math.sqrt(vx*vx + vy*vy).toFixed(2)} m/s`, x + 12, y - 18);
             }
 
-            // Informasi tambahan di canvas
+            // Informasi tambahan
             if (!running && trail.length === 0) {
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
                 ctx.font = '22px sans-serif';
@@ -713,6 +738,70 @@
             }
         }
 
+        // --- FUNGSI KLIK TITIK ANALISIS ---
+        function handleCanvasClick(event) {
+            // Dapatkan posisi klik relatif terhadap canvas
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mouseX = (event.clientX - rect.left) * scaleX;
+            const mouseY = (event.clientY - rect.top) * scaleY;
+
+            // Cari titik yang paling dekat dengan klik
+            let titikTerdekat = null;
+            let jarakTerdekat = Infinity;
+            for (let i = 0; i < titikList.length; i++) {
+                const p = titikList[i];
+                const dx = mouseX - p.x;
+                const dy = mouseY - p.y;
+                const jarak = Math.sqrt(dx * dx + dy * dy);
+                
+                // Radius deteksi klik (25 pixel agar mudah diklik)
+                if (jarak < 25 && jarak < jarakTerdekat) {
+                    jarakTerdekat = jarak;
+                    titikTerdekat = p;
+                }
+            }
+
+            // Jika ada titik yang diklik
+            if (titikTerdekat) {
+                titikAktif = titikTerdekat;
+                
+                // Hitung posisi tooltip (di atas titik, atau di bawah jika dekat atas)
+                let tooltipX = titikTerdekat.x;
+                let tooltipY = titikTerdekat.y - 40;
+                if (titikTerdekat.y < 100) tooltipY = titikTerdekat.y + 60;
+
+                // Skala kembali ke ukuran layar CSS
+                const displayX = tooltipX / scaleX;
+                const displayY = tooltipY / scaleY;
+
+                // Hitung kecepatan total
+                const vTotal = Math.sqrt(titikTerdekat.vx * titikTerdekat.vx + titikTerdekat.vy * titikTerdekat.vy);
+
+                // Tampilkan tooltip
+                tooltipInfo.style.display = 'block';
+                tooltipInfo.style.left = (displayX + 15) + 'px'; // Offset agar tidak menutupi titik
+                tooltipInfo.style.top = (displayY - 10) + 'px';
+                tooltipInfo.innerHTML = `
+                    <div class="judul">${titikTerdekat.label}</div>
+                    <div>⏱️ Waktu: <strong>${titikTerdekat.waktu.toFixed(2)} s</strong></div>
+                    <div>🔵 Vx: <strong style="color:#4fc3f7;">${titikTerdekat.vx.toFixed(2)} m/s</strong></div>
+                    <div>🟠 Vy: <strong style="color:#ffb74d;">${titikTerdekat.vy.toFixed(2)} m/s</strong></div>
+                    <div>📈 |v|: <strong style="color:#81c784;">${vTotal.toFixed(2)} m/s</strong></div>
+                    <div>📌 Posisi: <strong>(${Math.round(titikTerdekat.x)}, ${Math.round(GROUND_Y - titikTerdekat.y)})</strong></div>
+                `;
+                draw(); // Redraw untuk menampilkan titik aktif
+            } else {
+                // Klik di luar titik -> hilangkan tooltip
+                titikAktif = null;
+                tooltipInfo.style.display = 'none';
+                draw();
+            }
+        }
+
+        canvas.addEventListener('click', handleCanvasClick);
+
         // --- ANIMASI ---
         function animate() {
             if (running && !paused) updateFisika();
@@ -731,14 +820,12 @@
             const idx = Math.floor(Math.random() * pertanyaans.length);
             const soal = pertanyaans[idx];
             pertanyaanEl.textContent = soal.q;
-            // Reset jawaban
             document.querySelectorAll('#jawabanPrediksi button').forEach(b => {
                 b.style.background = 'white';
                 b.style.color = '#2a5298';
             });
             hasilPrediksi.style.display = 'none';
             prediksiSelesai = false;
-            // Simpan jawaban benar
             prediksiBaruBtn.dataset.jawabanBenar = soal.jawaban;
         }
 
@@ -785,8 +872,8 @@
         setupPrediksi();
         animate();
 
-        console.log('✅ Simulasi Meriam siap!');
-        console.log('📐 Klik prediksi sebelum simulasi untuk belajar.');
+        console.log('✅ Simulasi Meriam Interaktif siap!');
+        console.log('💡 Klik titik-titik pada lintasan untuk melihat analisis!');
 
     })(); // end IIFE
 </script>
