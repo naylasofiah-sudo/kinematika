@@ -65,40 +65,119 @@
     let prediksiSelesai = false;
     let pertanyaanAktif = null;
 
-    // --- PERTANYAAN PREDIKSI (LENGKAP) ---
-    const PERTANYAAN = [
-        {
-            q: 'Jika sudut meriam dinaikkan dari 30° menjadi 45° (dengan v₀ tetap), bagaimana jarak horizontalnya?',
-            jawaban: 'bertambah',
-            penjelasan_benar: 'Sudut yang lebih besar (hingga 45°) menghasilkan jarak yang lebih jauh.',
-            penjelasan_salah: 'Coba ingat: sudut yang lebih besar (hingga 45°) menghasilkan jarak yang lebih jauh.'
-        },
-        {
-            q: 'Jika sudut meriam dinaikkan dari 45° menjadi 60° (dengan v₀ tetap), bagaimana jarak horizontalnya?',
-            jawaban: 'berkurang',
-            penjelasan_benar: 'Sudut di atas 45° justru mengurangi jarak horizontal.',
-            penjelasan_salah: 'Coba ingat: sudut di atas 45° justru mengurangi jarak horizontal.'
-        },
-        {
-            q: 'Jika kecepatan awal diperbesar (dengan sudut tetap), bagaimana tinggi maksimumnya?',
-            jawaban: 'bertambah',
-            penjelasan_benar: 'Kecepatan awal yang lebih besar menghasilkan tinggi maksimum yang lebih tinggi.',
-            penjelasan_salah: 'Coba ingat: kecepatan awal berbanding lurus dengan tinggi maksimum.'
-        },
-        {
-            q: 'Jika gravitasi diperbesar (dengan v₀ dan sudut tetap), bagaimana jarak horizontalnya?',
-            jawaban: 'berkurang',
-            penjelasan_benar: 'Gravitasi yang lebih besar membuat benda lebih cepat jatuh, sehingga jarak horizontal berkurang.',
-            penjelasan_salah: 'Coba ingat: gravitasi yang lebih besar membuat benda lebih cepat jatuh, jarak horizontal berkurang.'
-        },
-        {
-            q: 'Jika kecepatan awal diperbesar (dengan sudut tetap), bagaimana jarak horizontalnya?',
-            jawaban: 'bertambah',
-            penjelasan_benar: 'Kecepatan awal yang lebih besar menghasilkan jarak horizontal yang lebih jauh.',
-            penjelasan_salah: 'Coba ingat: kecepatan awal berbanding lurus dengan jarak horizontal.'
-        }
-    ];
+   // ============================================================
+// PREDIKSI - BERDASARKAN KONDISI NYATA
+// ============================================================
 
+const PERTANYAAN = [
+    {
+        q: 'Jika sudut meriam dinaikkan dari 30° menjadi 45° (dengan v₀ tetap), bagaimana jarak horizontalnya?',
+        jawaban: 'bertambah',
+        penjelasan_benar: 'Sudut yang lebih besar (hingga 45°) menghasilkan jarak yang lebih jauh.',
+        penjelasan_salah: 'Coba ingat: sudut yang lebih besar (hingga 45°) menghasilkan jarak yang lebih jauh.'
+    },
+    {
+        q: 'Jika sudut meriam dinaikkan dari 45° menjadi 60° (dengan v₀ tetap), bagaimana jarak horizontalnya?',
+        jawaban: 'berkurang',
+        penjelasan_benar: 'Sudut di atas 45° justru mengurangi jarak horizontal.',
+        penjelasan_salah: 'Coba ingat: sudut di atas 45° justru mengurangi jarak horizontal.'
+    },
+    {
+        q: 'Jika kecepatan awal diperbesar (dengan sudut tetap), bagaimana tinggi maksimumnya?',
+        jawaban: 'bertambah',
+        penjelasan_benar: 'Kecepatan awal yang lebih besar menghasilkan tinggi maksimum yang lebih tinggi.',
+        penjelasan_salah: 'Coba ingat: kecepatan awal berbanding lurus dengan tinggi maksimum.'
+    },
+    {
+        q: 'Jika gravitasi diperbesar (dengan v₀ dan sudut tetap), bagaimana jarak horizontalnya?',
+        jawaban: 'berkurang',
+        penjelasan_benar: 'Gravitasi yang lebih besar membuat benda lebih cepat jatuh, sehingga jarak horizontal berkurang.',
+        penjelasan_salah: 'Coba ingat: gravitasi yang lebih besar membuat benda lebih cepat jatuh, jarak horizontal berkurang.'
+    },
+    {
+        q: 'Jika kecepatan awal diperbesar (dengan sudut tetap), bagaimana jarak horizontalnya?',
+        jawaban: 'bertambah',
+        penjelasan_benar: 'Kecepatan awal yang lebih besar menghasilkan jarak horizontal yang lebih jauh.',
+        penjelasan_salah: 'Coba ingat: kecepatan awal berbanding lurus dengan jarak horizontal.'
+    }
+];
+
+let pertanyaanAktif = null;
+let prediksiSelesai = false;
+
+function setupPrediksi() {
+    const idx = Math.floor(Math.random() * PERTANYAAN.length);
+    pertanyaanAktif = PERTANYAAN[idx];
+    pertanyaanEl.textContent = pertanyaanAktif.q;
+    
+    // Reset tombol
+    const tombolJawaban = document.querySelectorAll('#jawabanPrediksi button');
+    tombolJawaban.forEach(b => {
+        b.style.background = 'white';
+        b.style.color = '#2a5298';
+        b.disabled = false;
+        b.style.opacity = '1';
+    });
+    
+    // Sembunyikan hasil lama
+    hasilPrediksi.style.display = 'none';
+    hasilPrediksi.className = 'hasil-prediksi';
+    prediksiSelesai = false;
+}
+
+function tampilkanHasilPrediksi() {
+    // Cek apakah sudah selesai atau tidak ada pertanyaan aktif
+    if (prediksiSelesai || !pertanyaanAktif) return;
+    
+    // Cari tombol yang dipilih (background biru)
+    const tombolDipilih = document.querySelector('#jawabanPrediksi button[style*="background: rgb(42, 82, 152)"]');
+    
+    if (!tombolDipilih) {
+        hasilPrediksi.style.display = 'block';
+        hasilPrediksi.className = 'hasil-prediksi';
+        hasilPrediksi.innerHTML = '⚠️ Silakan pilih prediksi Anda terlebih dahulu!';
+        return;
+    }
+    
+    const jawabanUser = tombolDipilih.dataset.jawaban;
+    const jawabanBenar = pertanyaanAktif.jawaban;
+    const benar = (jawabanUser === jawabanBenar);
+    
+    // Tampilkan hasil
+    hasilPrediksi.style.display = 'block';
+    hasilPrediksi.className = 'hasil-prediksi ' + (benar ? 'benar' : 'salah');
+    
+    if (benar) {
+        hasilPrediksi.innerHTML = `✅ <strong>Benar!</strong> ${pertanyaanAktif.penjelasan_benar}`;
+    } else {
+        hasilPrediksi.innerHTML = `❌ <strong>Kurang tepat.</strong> ${pertanyaanAktif.penjelasan_salah}`;
+    }
+    
+    prediksiSelesai = true;
+}
+
+// --- EVENT UNTUK TOMBOL PREDIKSI ---
+document.querySelectorAll('#jawabanPrediksi button').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Highlight tombol yang dipilih
+        document.querySelectorAll('#jawabanPrediksi button').forEach(b => {
+            b.style.background = 'white';
+            b.style.color = '#2a5298';
+        });
+        this.style.background = '#2a5298';
+        this.style.color = 'white';
+        
+        // Jika simulasi sudah selesai, langsung tampilkan hasil
+        if (!running && trail.length > 0) {
+            tampilkanHasilPrediksi();
+        }
+    });
+});
+
+// Event untuk tombol "Pertanyaan Baru"
+prediksiBaruBtn.addEventListener('click', function() {
+    setupPrediksi();
+});
     // --- KONVERSI ---
     function derajatKeRadian(deg) { return deg * Math.PI / 180; }
 
