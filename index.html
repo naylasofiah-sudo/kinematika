@@ -1,7 +1,234 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi Meriam - Kinematika Partikel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0c29;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 25px;
+            max-width: 1700px;
+            width: 100%;
+            margin: 0 auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        h1 { text-align: center; color: #1a1a2e; font-size: 30px; }
+        .subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 15px; }
+
+        .main-layout { display: flex; gap: 20px; flex-wrap: wrap; }
+        .left-col { flex: 2; min-width: 600px; }
+        .right-col { flex: 1; min-width: 300px; max-width: 450px; }
+
+        .controls { display: flex; flex-wrap: wrap; gap: 10px; background: #f0f2f5; padding: 15px 20px; border-radius: 12px; margin-bottom: 15px; }
+        .control-group { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 150px; }
+        .control-group label { font-weight: 600; font-size: 13px; min-width: 60px; }
+        .control-group input[type="range"] { flex: 1; accent-color: #e65100; height: 5px; }
+        .control-group span { min-width: 40px; font-weight: 700; color: #e65100; font-size: 14px; }
+
+        .action-buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+        .btn { padding: 10px 25px; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; }
+        .btn-primary { background: linear-gradient(135deg, #e65100, #bf360c); color: white; }
+        .btn-primary:hover { transform: scale(1.03); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary { background: #37474f; color: white; }
+        .btn-secondary:hover { transform: scale(1.03); }
+        .btn-warning { background: #f57c00; color: white; }
+        .btn-warning:hover { transform: scale(1.03); }
+        .btn-warning:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .canvas-wrapper { background: #1a1a2e; border-radius: 12px; overflow: hidden; border: 3px solid #4a4a8a; position: relative; }
+        canvas { display: block; width: 100%; height: auto; background: #1a1a2e; cursor: pointer; }
+
+        #tooltipInfo {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.92);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            pointer-events: auto;
+            display: none;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+            z-index: 100;
+            max-width: 230px;
+            transform: translate(-50%, -110%);
+        }
+        #tooltipInfo .judul { color: #FFD740; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 3px; }
+        #tooltipInfo .close-btn {
+            position: absolute;
+            top: 5px; right: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #aaa;
+        }
+        #tooltipInfo .close-btn:hover { color: white; }
+
+        .panel-box { background: #f8f9fa; border-radius: 12px; padding: 16px; margin-bottom: 12px; border-left: 4px solid #2a5298; }
+        .panel-box h3 { font-size: 15px; color: #1a1a2e; margin-bottom: 8px; }
+        .panel-box p, .panel-box li { font-size: 13px; color: #333; line-height: 1.6; }
+        .panel-box .rumus { background: #1a1a2e; color: #ffd740; padding: 10px 14px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 14px; margin: 6px 0; }
+        .panel-box .catatan { background: #fff3e0; padding: 8px 12px; border-radius: 6px; font-size: 12px; color: #e65100; border-left: 3px solid #e65100; }
+
+        .prediksi-box { background: #e8f0fe; border-radius: 12px; padding: 16px; border: 2px dashed #2a5298; }
+        .prediksi-box h3 { font-size: 15px; color: #1a1a2e; }
+        .prediksi-box .pertanyaan { font-weight: 600; color: #2a5298; margin: 6px 0; }
+        .prediksi-box .jawaban-prediksi { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+        .prediksi-box .jawaban-prediksi button { padding: 6px 16px; border: 2px solid #2a5298; border-radius: 20px; background: white; cursor: pointer; font-weight: 600; transition: all 0.3s ease; }
+        .prediksi-box .jawaban-prediksi button:hover { background: #2a5298; color: white; }
+        .prediksi-box .hasil-prediksi { font-size: 13px; color: #333; margin-top: 6px; padding: 8px; border-radius: 6px; background: white; }
+        .prediksi-box .hasil-prediksi.benar { border-left: 4px solid #2e7d32; }
+        .prediksi-box .hasil-prediksi.salah { border-left: 4px solid #c62828; }
+
+        .data-panel { display: flex; flex-wrap: wrap; gap: 8px 20px; background: #263238; padding: 12px 16px; border-radius: 10px; margin-top: 10px; border: 1px solid #4a4a8a; }
+        .data-item { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #e0e0e0; font-family: 'Courier New', monospace; }
+        .data-item .label { font-weight: 600; color: #90a4ae; }
+        .data-item .value { font-weight: 700; padding: 0 8px; background: rgba(255,255,255,0.08); border-radius: 4px; }
+        .data-item .value.vx { color: #4fc3f7; }
+        .data-item .value.vy { color: #ffb74d; }
+        .data-item .value.speed { color: #81c784; }
+        .data-item .value.time { color: #ce93d8; }
+        .data-item .value.posisi { color: #ffffff; }
+
+        .status-siap { color: #2e7d32; font-weight: 700; }
+        .status-terbang { color: #e65100; font-weight: 700; }
+        .status-selesai { color: #c62828; font-weight: 700; }
+        .status-pause { color: #f57c00; font-weight: 700; }
+
+        .info-panel { display: flex; flex-wrap: wrap; gap: 10px 25px; background: #f0f2f5; padding: 10px 16px; border-radius: 10px; margin-top: 10px; }
+        .info-item { font-size: 13px; }
+        .info-item .label { font-weight: 600; }
+
+        @media (max-width: 1000px) {
+            .left-col { min-width: unset; flex: 100%; }
+            .right-col { max-width: unset; flex: 100%; }
+        }
+        @media (max-width: 600px) {
+            .container { padding: 12px; }
+            .controls { flex-direction: column; }
+            .control-group { min-width: unset; }
+            .action-buttons { justify-content: center; }
+            .btn { padding: 8px 16px; font-size: 13px; }
+            .data-panel { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎯 SIMULASI MERIAM - KINEMATIKA PARTIKEL</h1>
+    <p class="subtitle">Klik titik-titik pada lintasan untuk menganalisis data secara detail!</p>
+
+    <div class="main-layout">
+        <div class="left-col">
+            <div class="controls">
+                <div class="control-group">
+                    <label>v₀ (m/s):</label>
+                    <input type="range" id="kecepatanAwal" min="2" max="30" step="0.5" value="14">
+                    <span id="nilaiKecepatan">14</span>
+                </div>
+                <div class="control-group">
+                    <label>Sudut (°):</label>
+                    <input type="range" id="sudut" min="5" max="85" step="1" value="45">
+                    <span id="nilaiSudut">45</span>
+                </div>
+                <div class="control-group">
+                    <label>Gravitasi (g):</label>
+                    <input type="range" id="gravitasi" min="0.05" max="2.0" step="0.05" value="0.25">
+                    <span id="nilaiGravitasi">0.25</span>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="mulaiBtn" class="btn btn-primary">🚀 LUNCURKAN</button>
+                <button id="pauseBtn" class="btn btn-warning" disabled>⏸️ Pause</button>
+                <button id="resetBtn" class="btn btn-secondary">🔄 Reset</button>
+            </div>
+
+            <div class="canvas-wrapper" id="canvasWrapper">
+                <canvas id="simCanvas" width="1600" height="750"></canvas>
+                <div id="tooltipInfo">
+                    <span class="close-btn" onclick="this.parentElement.style.display='none'">✖</span>
+                    <div class="judul" id="tooltipJudul">Titik</div>
+                    <div id="tooltipData"></div>
+                </div>
+            </div>
+
+            <div class="data-panel">
+                <div class="data-item"><span class="label">⏱️ Waktu:</span> <span class="value time" id="dataWaktu">0.00</span> s</div>
+                <div class="data-item"><span class="label">🔵 Vx:</span> <span class="value vx" id="dataVx">0.00</span> m/s</div>
+                <div class="data-item"><span class="label">🟠 Vy:</span> <span class="value vy" id="dataVy">0.00</span> m/s</div>
+                <div class="data-item"><span class="label">📈 |v|:</span> <span class="value speed" id="dataSpeed">0.00</span> m/s</div>
+                <div class="data-item"><span class="label">📌 Posisi:</span> <span class="value posisi" id="dataPos">(0, 0)</span> m</div>
+            </div>
+
+            <div class="info-panel">
+                <div class="info-item"><span class="label">🎯 Status:</span> <span id="statusText" class="status-siap">SIAP</span></div>
+                <div class="info-item"><span class="label">📐 Sudut:</span> <span id="infoSudut">45</span>°</div>
+                <div class="info-item"><span class="label">📦 Jarak:</span> <span id="infoJarak">0</span> m</div>
+                <div class="info-item"><span class="label">⬆️ Tinggi Maks:</span> <span id="infoTinggi">0</span> m</div>
+                <div class="info-item"><span class="label">⏱️ Waktu Tempuh:</span> <span id="infoWaktuTempuh">0.00</span> s</div>
+            </div>
+        </div>
+
+        <div class="right-col">
+            <div class="panel-box">
+                <h3>📖 Konsep Gerak Parabola</h3>
+                <p>Gerak meriam adalah <strong>gerak parabola</strong>, yaitu perpaduan:</p>
+                <ul style="margin-left:16px;">
+                    <li><strong>GLB</strong> (Gerak Lurus Beraturan) pada arah <strong>horizontal (x)</strong> → kecepatan tetap (Vx = konstan)</li>
+                    <li><strong>GLBB</strong> (Gerak Lurus Berubah Beraturan) pada arah <strong>vertikal (y)</strong> → dipengaruhi gravitasi (Vy berubah)</li>
+                </ul>
+                <p style="margin-top:6px;">Hambatan udara <strong>diabaikan</strong> (kondisi ideal).</p>
+            </div>
+
+            <div class="panel-box">
+                <h3>📐 Rumus yang Digunakan</h3>
+                <div class="rumus">Vx = v₀ · cos(θ)</div>
+                <div class="rumus">Vy = v₀ · sin(θ) − g · t</div>
+                <div class="rumus">x = v₀ · cos(θ) · t</div>
+                <div class="rumus">y = v₀ · sin(θ) · t − ½ · g · t²</div>
+                <div style="font-size:12px;color:#666;margin-top:6px;">
+                    v₀ = kecepatan awal, θ = sudut, g = gravitasi, t = waktu
+                </div>
+                <div class="catatan">
+                    ⚠️ <strong>Catatan:</strong> Nilai gravitasi di simulasi ini <strong>bukan</strong> gravitasi Bumi (9,8 m/s²).<br>
+                    Nilai 0,25 m/s² digunakan agar <strong>lintasan lebih mudah diamati</strong> dalam layar. 
+                    Anda bisa mengubahnya dengan slider.
+                </div>
+            </div>
+
+            <div class="prediksi-box">
+                <h3>🧠 Prediksi Sebelum Simulasi</h3>
+                <p class="pertanyaan" id="pertanyaanPrediksi">
+                    Jika sudut meriam dinaikkan dari 30° menjadi 45° (dengan v₀ tetap), bagaimana jarak horizontalnya?
+                </p>
+                <div class="jawaban-prediksi" id="jawabanPrediksi">
+                    <button data-jawaban="bertambah">Bertambah</button>
+                    <button data-jawaban="berkurang">Berkurang</button>
+                    <button data-jawaban="tetap">Tetap</button>
+                </div>
+                <div id="hasilPrediksi" class="hasil-prediksi" style="display:none;"></div>
+                <button id="prediksiBaruBtn" class="btn btn-secondary" style="margin-top:8px;padding:6px 16px;font-size:12px;">🔄 Pertanyaan Baru</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // ================================================================
-    // SIMULASI MERIAM - KINEMATIKA PARTIKEL
-    // VERSI FINAL - PREDIKSI BERFUNGSI DENGAN BENAR
+    // SIMULASI MERIAM - VERSI FINAL (PREDIKSI BERFUNGSI)
     // ================================================================
 
     (function() {
@@ -700,3 +927,6 @@
 
     })(); // end IIFE
 </script>
+
+</body>
+</html>
