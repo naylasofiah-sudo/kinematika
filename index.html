@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulasi Meriam - Kinematika Partikel (Interaktif)</title>
+    <title>Simulasi Meriam - Kinematika Partikel (Anti-Lag)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -47,6 +47,33 @@
         .canvas-wrapper { background: #1a1a2e; border-radius: 12px; overflow: hidden; border: 3px solid #4a4a8a; position: relative; }
         canvas { display: block; width: 100%; height: auto; background: #1a1a2e; cursor: pointer; }
 
+        /* Pop-up Info Titik - Elemen HTML, bukan canvas */
+        #tooltipInfo {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.92);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            pointer-events: auto; /* Bisa diklik */
+            display: none;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+            z-index: 100;
+            max-width: 230px;
+        }
+        #tooltipInfo .judul { color: #FFD740; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 3px; }
+        #tooltipInfo .close-btn {
+            position: absolute;
+            top: 5px; right: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #aaa;
+        }
+        #tooltipInfo .close-btn:hover { color: white; }
+
         .panel-box { background: #f8f9fa; border-radius: 12px; padding: 16px; margin-bottom: 12px; border-left: 4px solid #2a5298; }
         .panel-box h3 { font-size: 15px; color: #1a1a2e; margin-bottom: 8px; }
         .panel-box p, .panel-box li { font-size: 13px; color: #333; line-height: 1.6; }
@@ -81,34 +108,6 @@
         .info-panel { display: flex; flex-wrap: wrap; gap: 10px 25px; background: #f0f2f5; padding: 10px 16px; border-radius: 10px; margin-top: 10px; }
         .info-item { font-size: 13px; }
         .info-item .label { font-weight: 600; }
-
-        /* Pop-up Info Titik */
-        #tooltipInfo {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            pointer-events: none;
-            display: none;
-            font-family: monospace;
-            font-size: 13px;
-            line-height: 1.6;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.2);
-            z-index: 100;
-            transform: translate(-50%, -110%); /* Agar tooltip berada di atas titik */
-            max-width: 220px;
-        }
-        #tooltipInfo .judul { color: #FFD740; font-weight: bold; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 3px; }
-        #tooltipInfo .close-btn {
-            position: absolute;
-            top: 5px; right: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #aaa;
-        }
-        #tooltipInfo .close-btn:hover { color: white; }
 
         @media (max-width: 1000px) {
             .left-col { min-width: unset; flex: 100%; }
@@ -162,9 +161,9 @@
             <!-- Canvas -->
             <div class="canvas-wrapper" id="canvasWrapper">
                 <canvas id="simCanvas" width="1600" height="750"></canvas>
-                <!-- Pop-up untuk analisis titik -->
+                <!-- Pop-up untuk analisis titik (Elemen HTML Biasa) -->
                 <div id="tooltipInfo">
-                    <span class="close-btn" onclick="document.getElementById('tooltipInfo').style.display='none'">✖</span>
+                    <span class="close-btn" onclick="this.parentElement.style.display='none'">✖</span>
                     <div class="judul" id="tooltipJudul">Titik</div>
                     <div id="tooltipData"></div>
                 </div>
@@ -236,7 +235,7 @@
 
 <script>
     // ================================================================
-    // SIMULASI MERIAM - VERSI INTERAKTIF (SIAP DIKLIK)
+    // SIMULASI MERIAM - VERSI ANTI-LAG (TANPA INFINITE LOOP)
     // ================================================================
 
     (function() {
@@ -247,7 +246,6 @@
         const ctx = canvas.getContext('2d');
         const W = canvas.width;
         const H = canvas.height;
-        const canvasWrapper = document.getElementById('canvasWrapper');
         const tooltipInfo = document.getElementById('tooltipInfo');
         const tooltipJudul = document.getElementById('tooltipJudul');
         const tooltipData = document.getElementById('tooltipData');
@@ -300,7 +298,6 @@
         let posisiAwalX = START_X;
         let frameCounter = 0;
         let titikList = [];
-        let titikAktif = null;
 
         // --- KONVERSI ---
         function derajatKeRadian(deg) { return deg * Math.PI / 180; }
@@ -380,7 +377,6 @@
             prediksiSelesai = false;
             hasilPrediksi.style.display = 'none';
             document.querySelectorAll('#jawabanPrediksi button').forEach(b => b.style.opacity = '1');
-            titikAktif = null;
             tooltipInfo.style.display = 'none';
             updateDataPanel();
             draw();
@@ -414,7 +410,6 @@
             prediksiSelesai = false;
             hasilPrediksi.style.display = 'none';
             document.querySelectorAll('#jawabanPrediksi button').forEach(b => b.style.opacity = '1');
-            titikAktif = null;
             tooltipInfo.style.display = 'none';
             updateDataPanel();
         }
@@ -610,22 +605,12 @@
                 }
             }
 
-            // 5 titik analisis (GAMBAR DENGAN EFEK BISA DIKLIK)
+            // 5 titik analisis (GAMBAR TANPA INFINITE LOOP)
             for (let i = 0; i < titikList.length; i++) {
                 const p = titikList[i];
                 const radius = 14;
                 const color = p.warna || '#FF6B6B';
                 
-                // Jika titik ini sedang aktif (diklik), gambar lebih besar & menyala
-                if (titikAktif && titikAktif.label === p.label) {
-                    ctx.shadowColor = color;
-                    ctx.shadowBlur = 30;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, radius + 5, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                    ctx.fill();
-                }
-
                 ctx.shadowColor = color;
                 ctx.shadowBlur = 20;
                 ctx.beginPath();
@@ -634,14 +619,12 @@
                 ctx.fill();
                 ctx.shadowBlur = 0;
                 
-                // Lingkaran luar
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
                 ctx.strokeStyle = 'rgba(255,255,255,0.6)';
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
-                // Label
                 const labelText = p.label;
                 ctx.font = 'bold 12px sans-serif';
                 const metrics = ctx.measureText(labelText);
@@ -754,19 +737,17 @@
             }
         }
 
-        // --- FUNGSI KLIK TITIK ANALISIS (DIPERBAIKI) ---
+        // --- FUNGSI KLIK TITIK ANALISIS (TANPA NGELAG) ---
         function handleCanvasClick(event) {
-            // Dapatkan posisi klik relatif terhadap canvas
+            // Konversi koordinat mouse ke koordinat canvas
             const rect = canvas.getBoundingClientRect();
-            
-            // Konversi koordinat mouse ke koordinat canvas (skala 1600x750)
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             
             const mouseX = (event.clientX - rect.left) * scaleX;
             const mouseY = (event.clientY - rect.top) * scaleY;
 
-            // Cari titik yang paling dekat dengan klik
+            // Cari titik terdekat
             let titikTerdekat = null;
             let jarakTerdekat = Infinity;
             
@@ -776,7 +757,6 @@
                 const dy = mouseY - p.y;
                 const jarak = Math.sqrt(dx * dx + dy * dy);
                 
-                // Radius deteksi klik (30 pixel agar mudah diklik)
                 if (jarak < 30 && jarak < jarakTerdekat) {
                     jarakTerdekat = jarak;
                     titikTerdekat = p;
@@ -785,12 +765,8 @@
 
             // Jika ada titik yang diklik
             if (titikTerdekat) {
-                titikAktif = titikTerdekat;
-                
-                // Hitung kecepatan total
                 const vTotal = Math.sqrt(titikTerdekat.vx * titikTerdekat.vx + titikTerdekat.vy * titikTerdekat.vy);
 
-                // Tampilkan tooltip
                 tooltipJudul.textContent = titikTerdekat.label;
                 tooltipData.innerHTML = `
                     <div>⏱️ Waktu: <strong>${titikTerdekat.waktu.toFixed(2)} s</strong></div>
@@ -800,22 +776,17 @@
                     <div>📌 Posisi: <strong>(${Math.round(titikTerdekat.x)}, ${Math.round(GROUND_Y - titikTerdekat.y)})</strong></div>
                 `;
 
-                // Posisi tooltip pada layar (dalam piksel CSS)
-                // Kita konversi koordinat canvas kembali ke koordinat CSS
+                // Posisi tooltip
                 const displayX = titikTerdekat.x / scaleX;
                 const displayY = titikTerdekat.y / scaleY;
 
-                tooltipInfo.style.display = 'block';
-                // Letakkan tooltip di atas titik (dengan transform translate(-50%, -110%) di CSS)
                 tooltipInfo.style.left = displayX + 'px';
                 tooltipInfo.style.top = displayY + 'px';
-
-                draw(); // Redraw untuk menampilkan titik aktif
+                // Geser ke atas sedikit agar tidak menutupi titik
+                tooltipInfo.style.transform = 'translate(-50%, -110%)'; 
+                tooltipInfo.style.display = 'block';
             } else {
-                // Klik di luar titik -> hilangkan tooltip
-                titikAktif = null;
                 tooltipInfo.style.display = 'none';
-                draw();
             }
         }
 
@@ -890,9 +861,6 @@
         resetSimulasi();
         setupPrediksi();
         animate();
-
-        console.log('✅ Simulasi Meriam Interaktif siap!');
-        console.log('💡 Klik titik-titik pada lintasan untuk melihat analisis!');
 
     })(); // end IIFE
 </script>
