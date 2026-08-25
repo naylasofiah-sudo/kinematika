@@ -125,21 +125,43 @@ function setupPrediksi() {
     prediksiSelesai = false;
 }
 
+// Variabel global untuk menyimpan jawaban yang dipilih
+let jawabanYangDipilih = null;
+
+// Saat tombol prediksi diklik, simpan jawabannya
+document.querySelectorAll('#jawabanPrediksi button').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Hapus highlight dari semua tombol
+        document.querySelectorAll('#jawabanPrediksi button').forEach(b => {
+            b.style.background = 'white';
+            b.style.color = '#2a5298';
+        });
+        // Highlight tombol yang dipilih
+        this.style.background = '#2a5298';
+        this.style.color = 'white';
+        // Simpan jawaban yang dipilih ke variabel global
+        jawabanYangDipilih = this.dataset.jawaban;
+        
+        // Jika simulasi sudah selesai, langsung tampilkan hasil
+        if (!running && trail.length > 0) {
+            tampilkanHasilPrediksi();
+        }
+    });
+});
+
+// Fungsi tampilkanHasilPrediksi yang baru
 function tampilkanHasilPrediksi() {
-    // Cek apakah sudah selesai atau tidak ada pertanyaan aktif
     if (prediksiSelesai || !pertanyaanAktif) return;
     
-    // Cari tombol yang dipilih (background biru)
-    const tombolDipilih = document.querySelector('#jawabanPrediksi button[style*="background: rgb(42, 82, 152)"]');
-    
-    if (!tombolDipilih) {
+    // Cek apakah ada jawaban yang sudah dipilih
+    if (!jawabanYangDipilih) {
         hasilPrediksi.style.display = 'block';
         hasilPrediksi.className = 'hasil-prediksi';
         hasilPrediksi.innerHTML = '⚠️ Silakan pilih prediksi Anda terlebih dahulu!';
         return;
     }
     
-    const jawabanUser = tombolDipilih.dataset.jawaban;
+    const jawabanUser = jawabanYangDipilih;
     const jawabanBenar = pertanyaanAktif.jawaban;
     const benar = (jawabanUser === jawabanBenar);
     
@@ -154,6 +176,19 @@ function tampilkanHasilPrediksi() {
     }
     
     prediksiSelesai = true;
+}
+
+// Jangan lupa reset jawabanYangDipilih di fungsi setupPrediksi dan resetSimulasi
+function setupPrediksi() {
+    // ... kode lain ...
+    jawabanYangDipilih = null; // Tambahkan baris ini
+    // ... kode lain ...
+}
+
+function resetSimulasi() {
+    // ... kode lain ...
+    jawabanYangDipilih = null; // Tambahkan baris ini
+    // ... kode lain ...
 }
 
 // --- EVENT UNTUK TOMBOL PREDIKSI ---
